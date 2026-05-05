@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS reactions (
 CREATE TABLE IF NOT EXISTS notion_queue (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   article_id INTEGER NOT NULL,
-  type TEXT NOT NULL CHECK (type IN ('read_later', 'try_later')),
+  type TEXT NOT NULL CHECK (type IN ('try_later')),
   status TEXT NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'synced', 'failed')),
   notion_page_id TEXT,
   created_at TEXT NOT NULL,
@@ -56,4 +56,3 @@ CREATE INDEX IF NOT EXISTS idx_articles_created_at ON articles(created_at);
 CREATE INDEX IF NOT EXISTS idx_reactions_article_id ON reactions(article_id);
 CREATE INDEX IF NOT EXISTS idx_notion_queue_article_id ON notion_queue(article_id);
 CREATE INDEX IF NOT EXISTS idx_notion_queue_status ON notion_queue(status);
-

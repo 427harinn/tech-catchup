@@ -9,7 +9,7 @@
 - 記事一覧表示
 - 全件 / 未要約 / 要約済み / 保存済みフィルタ
 - 興味ある / 興味なし / 後で読む / 試したい の保存
-- 後で読む / 試したい を `notion_queue` に追加
+- `試したい` のみを `notion_queue` に追加
 - SQLite DBを `backend/data/app.db` に永続化
 
 ## Phase 2で追加したこと
@@ -156,7 +156,7 @@ Content-Type: application/json
 - `read_later`
 - `try_later`
 
-`read_later` と `try_later` は `reactions` に保存したうえで、`notion_queue` にも `queued` として追加します。
+`interested` / `not_interested` / `read_later` は `reactions` にだけ保存します。`try_later` のみ `reactions` に保存したうえで、`notion_queue` にも `queued` として追加します。
 
 ### RSSソース一覧
 
@@ -242,6 +242,12 @@ docker compose exec backend npm run rss:fetch
 - 要約は元記事の代替になりすぎない範囲に留めます
 - 大量アクセスを避け、将来の本文取得でもアクセス頻度を抑えます
 - 利用規約や `robots.txt` に反する取得は行いません
+
+## Notion保存方針
+
+- Notionに保存するのは、基本的に `試したい` にした記事のみです
+- `後で読む` はローカルのリアクションとして保持しますが、Notionキューには追加しません
+- Phase 4 の Notion 同期対象は `notion_queue` に入った `try_later` のみです
 
 ## Phase 3の運用
 

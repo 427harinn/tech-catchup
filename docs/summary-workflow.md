@@ -71,3 +71,4 @@ Content-Type: application/json
 - 要約対象は元記事の代替にならない粒度に留めます
 - 記事本文全文はDBやNotionに保存しません
 - 元記事URLは必ず保持します
+- Notion同期対象は `try_later` のみです

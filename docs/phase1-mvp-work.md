@@ -52,7 +52,7 @@ Build a Docker-first local MVP for a personal tech catch-up tool that can:
   - `summarized`
   - `failed`
   - `queued`
-- `read_later` and `try_later` reactions will also enqueue a record in `notion_queue`.
+- Only `try_later` reactions will enqueue a record in `notion_queue`.
 - If title is omitted during manual URL registration, the URL itself will be stored as the title.
 
 ## Risks / Things To Watch
@@ -116,5 +116,5 @@ These are intentionally out of scope for Phase 1, but we should leave clean exte
 - articles persist in SQLite
 - article list is visible in the UI
 - reactions persist in SQLite
-- `read_later` and `try_later` create `notion_queue` entries
+- `try_later` creates `notion_queue` entries
 - data survives container restart

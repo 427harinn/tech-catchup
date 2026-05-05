@@ -1,7 +1,7 @@
 import { getDb } from '../db/database.js';
 
 const validReactions = new Set(['interested', 'not_interested', 'read_later', 'try_later']);
-const queueReactions = new Set(['read_later', 'try_later']);
+const queueReactions = new Set(['try_later']);
 export function listArticles({ status, saved } = {}) {
   const db = getDb();
   const params = {};
