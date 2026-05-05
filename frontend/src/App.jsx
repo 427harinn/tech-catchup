@@ -67,8 +67,8 @@ export function App() {
     setMessage('');
 
     try {
-      await sendReaction(articleId, reaction);
-      setMessage(toReactionMessage(reaction));
+      const result = await sendReaction(articleId, reaction);
+      setMessage(toReactionMessage(reaction, result.notion_sync));
       await loadArticles();
     } catch (requestError) {
       setError(requestError.message);
@@ -157,7 +157,12 @@ export function App() {
   );
 }
 
-function toReactionMessage(reaction) {
+function toReactionMessage(reaction, notionSync) {
+  if (reaction === 'try_later' && notionSync?.attempted) {
+    if (notionSync.succeeded) return '試したいに保存し、Notionへ同期しました';
+    return notionSync.message || 'Notion同期に失敗しましたが、あとで再同期できます';
+  }
+
   if (reaction === 'interested') return '興味あるとして保存しました';
   if (reaction === 'not_interested') return '興味なしとして保存しました';
   if (reaction === 'read_later') return '後で読むに追加しました';

@@ -261,6 +261,7 @@ export function createReaction(articleId, reaction) {
   }
 
   const now = new Date().toISOString();
+  let notionQueueItemId = null;
   const tx = db.transaction(() => {
     db.prepare(`
       INSERT INTO reactions (article_id, reaction, created_at)
@@ -268,10 +269,11 @@ export function createReaction(articleId, reaction) {
     `).run({ article_id: articleId, reaction, created_at: now });
 
     if (queueReactions.has(reaction)) {
-      db.prepare(`
+      const queueResult = db.prepare(`
         INSERT INTO notion_queue (article_id, type, status, created_at)
         VALUES (@article_id, @type, 'queued', @created_at)
       `).run({ article_id: articleId, type: reaction, created_at: now });
+      notionQueueItemId = Number(queueResult.lastInsertRowid);
 
       db.prepare(`
         UPDATE articles
@@ -284,7 +286,10 @@ export function createReaction(articleId, reaction) {
   });
 
   tx();
-  return getArticle(articleId);
+  return {
+    article: getArticle(articleId),
+    notionQueueItemId
+  };
 }
 
 export function saveSummary(articleId, payload) {

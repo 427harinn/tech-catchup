@@ -8,6 +8,7 @@ import {
   listUnsummarizedArticles,
   saveSummary
 } from '../services/articlesService.js';
+import { syncNotionQueueItem } from '../services/notionService.js';
 
 export const articlesRouter = express.Router();
 
@@ -68,10 +69,44 @@ articlesRouter.post('/:id/summary', (req, res, next) => {
   }
 });
 
-articlesRouter.post('/:id/reactions', (req, res, next) => {
+articlesRouter.post('/:id/reactions', async (req, res, next) => {
   try {
-    const article = createReaction(Number(req.params.id), req.body.reaction);
-    res.status(201).json({ article });
+    const reaction = req.body.reaction;
+    const { article, notionQueueItemId } = createReaction(Number(req.params.id), reaction);
+
+    if (reaction !== 'try_later' || !notionQueueItemId) {
+      res.status(201).json({ article });
+      return;
+    }
+
+    try {
+      const notionResult = await syncNotionQueueItem(notionQueueItemId);
+      res.status(201).json({
+        article: getArticle(Number(req.params.id)),
+        notion_sync: {
+          attempted: true,
+          succeeded: true,
+          queue_item: notionResult.queue_item,
+          notion_page: notionResult.notion_page
+        }
+      });
+    } catch (error) {
+      console.error('Immediate Notion sync failed', {
+        articleId: Number(req.params.id),
+        queueItemId: notionQueueItemId,
+        message: error.message
+      });
+
+      res.status(201).json({
+        article: getArticle(Number(req.params.id)),
+        notion_sync: {
+          attempted: true,
+          succeeded: false,
+          queue_item_id: notionQueueItemId,
+          message: 'Notion同期に失敗しましたが、あとで再同期できます。'
+        }
+      });
+    }
   } catch (error) {
     next(error);
   }
