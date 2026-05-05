@@ -32,8 +32,8 @@ export function fetchArticles(filter) {
   return request(`/api/articles${query ? `?${query}` : ''}`);
 }
 
-export function createArticle(payload) {
-  return request('/api/articles', {
+export function createSummarizeLinkJob(payload) {
+  return request('/api/jobs/summarize-link', {
     method: 'POST',
     body: JSON.stringify(payload)
   });
@@ -54,6 +54,10 @@ export function createFetchAndSummarizeJob() {
 
 export function fetchLatestFetchAndSummarizeJob() {
   return request('/api/jobs/fetch-and-summarize/latest');
+}
+
+export function fetchLatestSummarizeLinkJob() {
+  return request('/api/jobs/summarize-link/latest');
 }
 
 export function fetchAndSummarize() {

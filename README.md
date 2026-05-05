@@ -308,3 +308,5 @@ Windows ホスト側 runner server の起動方法とジョブ通知方式は [docs/runner-server.
 古い記事を rchived_at で非表示に整理する運用は [docs/articles-archive.md](docs/articles-archive.md) を参照してください。
 
 要約対象を興味・重要度・探索でピックアップする方針は [docs/article-pickup.md](docs/article-pickup.md) を参照してください。
+
+- 手動URL要約と X/Twitter リンク方針: [docs/manual-link-summary.md](/abs/c:/Users/User/Documents/GitHub/tech-catchup/docs/manual-link-summary.md:1)

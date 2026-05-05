@@ -55,10 +55,11 @@ CREATE TABLE IF NOT EXISTS interest_weights (
 CREATE TABLE IF NOT EXISTS jobs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   type TEXT NOT NULL,
-  status TEXT NOT NULL CHECK (status IN ('queued', 'running', 'succeeded', 'failed', 'skipped')),
+  status TEXT NOT NULL CHECK (status IN ('queued', 'running', 'succeeded', 'failed', 'skipped', 'needs_manual_text')),
   requested_at TEXT NOT NULL,
   started_at TEXT,
   finished_at TEXT,
+  payload_json TEXT,
   result_json TEXT,
   error_message TEXT
 );

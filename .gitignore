@@ -11,5 +11,7 @@ backend/data/*.db-wal
 logs/*.log
 logs/*.lock
 logs/codex-last-message-*.json
+logs/codex-link-last-message-job-*.json
 backend/src/scripts/summary-*.json
+backend/src/scripts/manual-summary-job-*.json
 

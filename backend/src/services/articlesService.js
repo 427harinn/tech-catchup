@@ -304,6 +304,55 @@ export function createReaction(articleId, reaction) {
   };
 }
 
+export function saveManualSummarizedArticle({
+  url,
+  title,
+  memo = null,
+  summary
+}) {
+  const trimmedUrl = String(url || '').trim();
+  const trimmedTitle = String(title || '').trim();
+  const trimmedMemo = String(memo || '').trim();
+
+  if (!trimmedUrl) {
+    const error = new Error('URL is required.');
+    error.status = 400;
+    throw error;
+  }
+
+  const sourceTitle = trimmedTitle || String(summary?.title_suggested || '').trim() || trimmedUrl;
+  const rawExcerpt = String(summary?.raw_excerpt || '').trim() || trimmedMemo || null;
+  const articleResult = createArticleIfNotExists({
+    title: sourceTitle,
+    url: trimmedUrl,
+    source: 'manual',
+    fetchedAt: new Date().toISOString(),
+    rawExcerpt
+  });
+
+  const db = getDb();
+  db.prepare(`
+    UPDATE articles
+    SET title = @title,
+        source = 'manual',
+        raw_excerpt = @raw_excerpt,
+        archived_at = NULL,
+        updated_at = @updated_at
+    WHERE id = @id
+  `).run({
+    id: articleResult.article.id,
+    title: sourceTitle,
+    raw_excerpt: rawExcerpt,
+    updated_at: new Date().toISOString()
+  });
+
+  const savedArticle = saveSummary(articleResult.article.id, summary);
+  return {
+    article: savedArticle,
+    created: articleResult.created
+  };
+}
+
 export function saveSummary(articleId, payload) {
   const article = getArticle(articleId);
   if (!article) {

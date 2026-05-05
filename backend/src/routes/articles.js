@@ -3,6 +3,7 @@ import { pickupArticles } from '../services/articlePickupService.js';
 import {
   archiveOldArticles,
   createArticle,
+  saveManualSummarizedArticle,
   markArticleSummaryFailed,
   createReaction,
   getArticle,
@@ -58,6 +59,15 @@ articlesRouter.post('/', (req, res, next) => {
   try {
     const article = createArticle(req.body);
     res.status(201).json({ article });
+  } catch (error) {
+    next(error);
+  }
+});
+
+articlesRouter.post('/manual-summary', (req, res, next) => {
+  try {
+    const result = saveManualSummarizedArticle(req.body || {});
+    res.status(result.created ? 201 : 200).json(result);
   } catch (error) {
     next(error);
   }

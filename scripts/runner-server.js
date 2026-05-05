@@ -20,8 +20,7 @@ const jobHandlers = {
     script: path.join(scriptDirectory, 'run-fetch-and-summarize-job.ps1')
   },
   summarize_link: {
-    unsupported: true,
-    message: 'summarize_link is reserved for future implementation.'
+    script: path.join(scriptDirectory, 'run-summarize-link-job.ps1')
   }
 };
 

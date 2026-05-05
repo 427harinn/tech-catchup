@@ -6,10 +6,30 @@ export const JOB_TYPES = {
 };
 
 const ACTIVE_JOB_STATUSES = ['queued', 'running'];
-const FINAL_JOB_STATUSES = ['succeeded', 'failed', 'skipped'];
+const FINAL_JOB_STATUSES = ['succeeded', 'failed', 'skipped', 'needs_manual_text'];
 
 export function createFetchAndSummarizeJob() {
   return createJob(JOB_TYPES.fetchAndSummarize);
+}
+
+export function createSummarizeLinkJob({ url, title, memo } = {}) {
+  const trimmedUrl = String(url || '').trim();
+  const trimmedTitle = String(title || '').trim();
+  const trimmedMemo = String(memo || '').trim();
+
+  if (!trimmedUrl) {
+    const error = new Error('URL is required.');
+    error.status = 400;
+    throw error;
+  }
+
+  return createJob(JOB_TYPES.summarizeLink, {
+    payloadJson: {
+      url: trimmedUrl,
+      title: trimmedTitle || null,
+      memo: trimmedMemo || null
+    }
+  });
 }
 
 export function getLatestFetchAndSummarizeJob() {
@@ -20,7 +40,15 @@ export function getNextFetchAndSummarizeJob() {
   return getNextQueuedJobByType(JOB_TYPES.fetchAndSummarize);
 }
 
-export function createJob(type) {
+export function getLatestSummarizeLinkJob() {
+  return getLatestJobByType(JOB_TYPES.summarizeLink);
+}
+
+export function getNextSummarizeLinkJob() {
+  return getNextQueuedJobByType(JOB_TYPES.summarizeLink);
+}
+
+export function createJob(type, { payloadJson = null } = {}) {
   const existing = getActiveJob(type);
 
   if (existing) {
@@ -36,16 +64,19 @@ export function createJob(type) {
     INSERT INTO jobs (
       type,
       status,
-      requested_at
+      requested_at,
+      payload_json
     )
     VALUES (
       @type,
       'queued',
-      @requested_at
+      @requested_at,
+      @payload_json
     )
   `).run({
     type,
-    requested_at: now
+    requested_at: now,
+    payload_json: payloadJson ? JSON.stringify(payloadJson) : null
   });
 
   return {
@@ -221,6 +252,7 @@ function parseJob(job) {
 
   return {
     ...job,
+    payload_json: parseJsonValue(job.payload_json, null),
     result_json: parseJsonValue(job.result_json, null)
   };
 }

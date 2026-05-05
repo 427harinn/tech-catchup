@@ -16,9 +16,6 @@ backend コンテナは `powershell.exe` や Codex CLI を直接実行しませ�
 現在対応:
 
 - `fetch_and_summarize`
-
-将来追加予定:
-
 - `summarize_link`
 
 未対応の job type は明示的に拒否します。
@@ -32,6 +29,7 @@ backend コンテナは `powershell.exe` や Codex CLI を直接実行しませ�
 - 直接通知テスト: `scripts/test-runner-server.ps1`
 - backend 経由一括確認: `scripts/check-fetch-and-summarize-flow.ps1`
 - PowerShell runner: `scripts/run-fetch-and-summarize-job.ps1`
+- PowerShell runner: `scripts/run-summarize-link-job.ps1`
 - 実処理本体: `scripts/fetch-and-summarize.ps1`
 
 ## 起動方法

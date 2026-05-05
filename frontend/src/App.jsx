@@ -3,10 +3,11 @@ import { RefreshCcw, Rss } from 'lucide-react';
 import { ArticleCard } from './components/ArticleCard.jsx';
 import { ArticleForm } from './components/ArticleForm.jsx';
 import {
-  createArticle,
   createFetchAndSummarizeJob,
+  createSummarizeLinkJob,
   fetchArticles,
   fetchLatestFetchAndSummarizeJob,
+  fetchLatestSummarizeLinkJob,
   sendReaction
 } from './api/client.js';
 
@@ -22,13 +23,14 @@ const ACTIVE_JOB_STATUSES = new Set(['queued', 'running']);
 export function App() {
   const [articles, setArticles] = useState([]);
   const [filter, setFilter] = useState('all');
-  const [form, setForm] = useState({ url: '', title: '' });
+  const [form, setForm] = useState({ url: '', title: '', memo: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [fetchingRss, setFetchingRss] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [latestJob, setLatestJob] = useState(null);
+  const [latestLinkJob, setLatestLinkJob] = useState(null);
 
   useEffect(() => {
     loadArticles(filter);
@@ -36,6 +38,7 @@ export function App() {
 
   useEffect(() => {
     loadLatestJob();
+    loadLatestLinkJob();
   }, []);
 
   useEffect(() => {
@@ -49,6 +52,18 @@ export function App() {
 
     return () => window.clearInterval(timer);
   }, [latestJob?.id, latestJob?.status]);
+
+  useEffect(() => {
+    if (!latestLinkJob || !ACTIVE_JOB_STATUSES.has(latestLinkJob.status)) {
+      return undefined;
+    }
+
+    const timer = window.setInterval(() => {
+      loadLatestLinkJob({ silent: true });
+    }, 4000);
+
+    return () => window.clearInterval(timer);
+  }, [latestLinkJob?.id, latestLinkJob?.status]);
 
   async function loadArticles(nextFilter = filter) {
     setLoading(true);
@@ -85,6 +100,27 @@ export function App() {
     }
   }
 
+  async function loadLatestLinkJob({ silent = false } = {}) {
+    try {
+      const data = await fetchLatestSummarizeLinkJob();
+      const nextJob = data.job || null;
+      const previousStatus = latestLinkJob?.status;
+
+      setLatestLinkJob(nextJob);
+
+      if (silent && previousStatus && previousStatus !== nextJob?.status && nextJob) {
+        setMessage(toLinkJobStatusMessage(nextJob));
+        if (nextJob.status === 'succeeded') {
+          await loadArticles();
+        }
+      }
+    } catch (requestError) {
+      if (!silent) {
+        setError(requestError.message);
+      }
+    }
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
     setSaving(true);
@@ -92,14 +128,15 @@ export function App() {
     setMessage('');
 
     try {
-      await createArticle(form);
-      setForm({ url: '', title: '' });
-      setMessage('URL を追加しました');
-      await loadArticles();
+      const result = await createSummarizeLinkJob(form);
+      setLatestLinkJob(result.job || null);
+      setForm({ url: '', title: '', memo: '' });
+      setMessage(toLinkJobCreationMessage(result));
+      await loadLatestLinkJob({ silent: true });
     } catch (requestError) {
-      if (requestError.status === 409 && requestError.data?.article) {
-        setMessage('この URL はすでに登録済みです');
-        await loadArticles();
+      if (requestError.status === 409 && requestError.data?.job) {
+        setLatestLinkJob(requestError.data.job);
+        setMessage('URL要約ジョブはすでに待機中または実行中です。');
       } else {
         setError(requestError.message);
       }
@@ -191,6 +228,12 @@ export function App() {
         </div>
       )}
 
+      {latestLinkJob && (
+        <div className={`notice ${latestLinkJob.status === 'failed' ? 'notice--error' : ''}`}>
+          {toLinkJobStatusMessage(latestLinkJob)}
+        </div>
+      )}
+
       {(message || error) && (
         <div className={error ? 'notice notice--error' : 'notice'}>
           {error || message}
@@ -229,6 +272,28 @@ function toReactionMessage(reaction, notionSync) {
   return '保存しました';
 }
 
+function toLinkJobCreationMessage(result) {
+  const notification = result.notification;
+
+  if (!result.created) {
+    if (notification?.attempted && !notification.succeeded) {
+      return `URL要約ジョブはすでに待機中または実行中です。runner 通知: ${notification.message}`;
+    }
+
+    return 'URL要約ジョブはすでに待機中または実行中です。';
+  }
+
+  if (notification?.attempted && notification.succeeded) {
+    return 'URL要約ジョブを登録し、runner に通知しました。';
+  }
+
+  if (notification?.attempted && !notification.succeeded) {
+    return `URL要約ジョブを登録しました。runner 通知に失敗したため queued のままです: ${notification.message}`;
+  }
+
+  return 'URL要約ジョブを登録しました。';
+}
+
 function toJobCreationMessage(result) {
   const notification = result.notification;
 
@@ -249,6 +314,35 @@ function toJobCreationMessage(result) {
   }
 
   return '取得＆要約ジョブを登録しました。';
+}
+
+function toLinkJobStatusMessage(job) {
+  const result = job.result_json || null;
+
+  if (job.status === 'queued') {
+    return `URL要約ジョブ #${job.id} は待機中です。`;
+  }
+
+  if (job.status === 'running') {
+    return `URL要約ジョブ #${job.id} を実行中です。`;
+  }
+
+  if (job.status === 'failed') {
+    return `URL要約ジョブ #${job.id} は失敗しました。${job.error_message || ''}`.trim();
+  }
+
+  if (job.status === 'needs_manual_text') {
+    return `URL要約ジョブ #${job.id} は本文確認ができませんでした。後で本文貼り付け対応に回せます。`;
+  }
+
+  if (job.status === 'succeeded') {
+    const articleId = result?.article_id;
+    return articleId
+      ? `URL要約が完了しました。article_id=${articleId}`
+      : 'URL要約が完了しました。';
+  }
+
+  return `URL要約ジョブ #${job.id} の状態: ${job.status}`;
 }
 
 function toJobStatusMessage(job) {

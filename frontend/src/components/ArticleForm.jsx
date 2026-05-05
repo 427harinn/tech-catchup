@@ -24,9 +24,19 @@ export function ArticleForm({ form, saving, onChange, onSubmit }) {
         />
       </label>
 
+      <label>
+        メモ 任意
+        <textarea
+          value={form.memo}
+          onChange={(event) => onChange({ ...form, memo: event.target.value })}
+          placeholder="補足メモや、URLだけでは分かりにくい背景があれば入力"
+          rows={3}
+        />
+      </label>
+
       <button type="submit" disabled={saving}>
         <Plus size={18} />
-        {saving ? '登録中' : 'URL登録'}
+        {saving ? '要約依頼中' : 'URL登録'}
       </button>
     </form>
   );

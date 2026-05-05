@@ -3,9 +3,12 @@ import {
   JOB_TYPES,
   completeJob,
   createFetchAndSummarizeJob,
+  createSummarizeLinkJob,
   failJob,
   getLatestFetchAndSummarizeJob,
+  getLatestSummarizeLinkJob,
   getNextFetchAndSummarizeJob,
+  getNextSummarizeLinkJob,
   startJob
 } from '../services/jobsService.js';
 import { notifyRunnerServer } from '../services/runnerNotificationService.js';
@@ -15,6 +18,20 @@ export const jobsRouter = express.Router();
 jobsRouter.post('/fetch-and-summarize', async (req, res, next) => {
   try {
     const result = createFetchAndSummarizeJob();
+    const notification = await notifyIfNeeded(result.job);
+
+    res.status(result.created ? 201 : 200).json({
+      ...result,
+      notification
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+jobsRouter.post('/summarize-link', async (req, res, next) => {
+  try {
+    const result = createSummarizeLinkJob(req.body || {});
     const notification = await notifyIfNeeded(result.job);
 
     res.status(result.created ? 201 : 200).json({
@@ -36,10 +53,30 @@ jobsRouter.get('/fetch-and-summarize/latest', (req, res, next) => {
   }
 });
 
+jobsRouter.get('/summarize-link/latest', (req, res, next) => {
+  try {
+    res.json({
+      job: getLatestSummarizeLinkJob()
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 jobsRouter.get('/fetch-and-summarize/next', (req, res, next) => {
   try {
     res.json({
       job: getNextFetchAndSummarizeJob()
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+jobsRouter.get('/summarize-link/next', (req, res, next) => {
+  try {
+    res.json({
+      job: getNextSummarizeLinkJob()
     });
   } catch (error) {
     next(error);
@@ -96,7 +133,10 @@ async function notifyIfNeeded(job) {
     };
   }
 
-  if (job.type === JOB_TYPES.fetchAndSummarize && job.status === 'queued') {
+  if (
+    (job.type === JOB_TYPES.fetchAndSummarize || job.type === JOB_TYPES.summarizeLink) &&
+    job.status === 'queued'
+  ) {
     return notifyRunnerServer({ jobType: job.type });
   }
 
