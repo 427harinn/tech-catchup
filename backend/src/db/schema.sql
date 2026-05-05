@@ -51,8 +51,21 @@ CREATE TABLE IF NOT EXISTS interest_weights (
   updated_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS jobs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  type TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('queued', 'running', 'succeeded', 'failed', 'skipped')),
+  requested_at TEXT NOT NULL,
+  started_at TEXT,
+  finished_at TEXT,
+  result_json TEXT,
+  error_message TEXT
+);
+
 CREATE INDEX IF NOT EXISTS idx_articles_status ON articles(status);
 CREATE INDEX IF NOT EXISTS idx_articles_created_at ON articles(created_at);
 CREATE INDEX IF NOT EXISTS idx_reactions_article_id ON reactions(article_id);
 CREATE INDEX IF NOT EXISTS idx_notion_queue_article_id ON notion_queue(article_id);
 CREATE INDEX IF NOT EXISTS idx_notion_queue_status ON notion_queue(status);
+CREATE INDEX IF NOT EXISTS idx_jobs_type_requested_at ON jobs(type, requested_at DESC);
+CREATE INDEX IF NOT EXISTS idx_jobs_type_status ON jobs(type, status);

@@ -22,6 +22,8 @@ $lockStream = $null
 $lockAcquired = $false
 $codexCommand = $null
 $dockerCommand = $null
+$resultStartMarker = 'FETCH_AND_SUMMARIZE_RESULT_START'
+$resultEndMarker = 'FETCH_AND_SUMMARIZE_RESULT_END'
 
 function Write-Log {
   param(
@@ -61,6 +63,18 @@ function Write-JsonLog {
       Write-Log "[$Label] $line"
     }
   }
+}
+
+function Write-ResultJson {
+  param(
+    [Parameter(Mandatory = $true)]
+    $Value
+  )
+
+  $json = $Value | ConvertTo-Json -Depth 10
+  Write-Output $script:resultStartMarker
+  Write-Output $json
+  Write-Output $script:resultEndMarker
 }
 
 function Test-CommandAvailable {
@@ -256,6 +270,16 @@ Push-Location $repoRoot
 try {
   if (-not (Acquire-Lock)) {
     Write-Log "Another fetch-and-summarize process is already running. lock_path=$lockPath"
+    $lockedSummary = [pscustomobject]@{
+      attempted = 0
+      succeeded = 0
+      failed = 0
+      processed_articles = @()
+      already_running = $true
+      message = 'Another fetch-and-summarize process is already running.'
+    }
+    Write-JsonLog -Label 'summary' -Value $lockedSummary
+    Write-ResultJson -Value $lockedSummary
     exit 0
   }
 
@@ -287,7 +311,7 @@ try {
       processed_articles = @()
     }
     Write-JsonLog -Label 'summary' -Value $emptySummary
-    Write-Output ($emptySummary | ConvertTo-Json -Depth 10)
+    Write-ResultJson -Value $emptySummary
     exit 0
   }
 
@@ -331,7 +355,7 @@ try {
   $summaryJson = $summary | ConvertTo-Json -Depth 10
   Write-Log 'Fetch-and-summarize summary follows.'
   Write-JsonLog -Label 'summary' -Value $summary
-  Write-Output $summaryJson
+  Write-ResultJson -Value $summary
 } finally {
   Release-Lock
   Pop-Location

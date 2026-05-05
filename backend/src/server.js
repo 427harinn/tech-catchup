@@ -6,6 +6,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { initDb } from './db/database.js';
 import { articlesRouter } from './routes/articles.js';
+import { jobsRouter } from './routes/jobs.js';
 import { notionRouter } from './routes/notion.js';
 import { rssRouter } from './routes/rss.js';
 
@@ -32,6 +33,7 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use('/api/articles', articlesRouter);
+app.use('/api/jobs', jobsRouter);
 app.use('/api/notion', notionRouter);
 app.use('/api/rss', rssRouter);
 

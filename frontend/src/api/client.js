@@ -46,6 +46,20 @@ export function sendReaction(articleId, reaction) {
   });
 }
 
+export function createFetchAndSummarizeJob() {
+  return request('/api/jobs/fetch-and-summarize', {
+    method: 'POST'
+  });
+}
+
+export function fetchLatestFetchAndSummarizeJob() {
+  return request('/api/jobs/fetch-and-summarize/latest');
+}
+
+export function fetchAndSummarize() {
+  return createFetchAndSummarizeJob();
+}
+
 export function fetchRss() {
   return request('/api/rss/fetch', {
     method: 'POST'
