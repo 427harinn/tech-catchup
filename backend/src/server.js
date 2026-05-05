@@ -4,6 +4,7 @@ import express from 'express';
 import morgan from 'morgan';
 import { initDb } from './db/database.js';
 import { articlesRouter } from './routes/articles.js';
+import { notionRouter } from './routes/notion.js';
 import { rssRouter } from './routes/rss.js';
 
 const app = express();
@@ -24,6 +25,7 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use('/api/articles', articlesRouter);
+app.use('/api/notion', notionRouter);
 app.use('/api/rss', rssRouter);
 
 app.use((req, res) => {

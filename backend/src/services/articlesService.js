@@ -18,7 +18,6 @@ export function listArticles({ status, saved } = {}) {
         SELECT 1
         FROM notion_queue nq
         WHERE nq.article_id = a.id
-          AND nq.status = 'queued'
       )
     `);
   }
@@ -53,7 +52,12 @@ export function listArticles({ status, saved } = {}) {
         FROM notion_queue nq
         WHERE nq.article_id = a.id
           AND nq.status = 'queued'
-      ), '[]') AS notion_queue_types
+      ), '[]') AS notion_queue_types,
+      COALESCE((
+        SELECT json_group_array(status)
+        FROM notion_queue nq
+        WHERE nq.article_id = a.id
+      ), '[]') AS notion_queue_statuses
     FROM articles a
     LEFT JOIN summaries s ON s.article_id = a.id
     ${whereSql}
@@ -113,7 +117,12 @@ export function getArticle(id) {
         FROM notion_queue nq
         WHERE nq.article_id = a.id
           AND nq.status = 'queued'
-      ), '[]') AS notion_queue_types
+      ), '[]') AS notion_queue_types,
+      COALESCE((
+        SELECT json_group_array(status)
+        FROM notion_queue nq
+        WHERE nq.article_id = a.id
+      ), '[]') AS notion_queue_statuses
     FROM articles a
     LEFT JOIN summaries s ON s.article_id = a.id
     WHERE a.id = @id
@@ -370,7 +379,8 @@ function parseJsonColumns(article) {
     ...article,
     tags: parseJsonValue(article.tags, []),
     reactions: JSON.parse(article.reactions || '[]'),
-    notion_queue_types: JSON.parse(article.notion_queue_types || '[]')
+    notion_queue_types: JSON.parse(article.notion_queue_types || '[]'),
+    notion_queue_statuses: JSON.parse(article.notion_queue_statuses || '[]')
   };
 }
 

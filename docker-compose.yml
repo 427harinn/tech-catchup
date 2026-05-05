@@ -7,6 +7,8 @@ services:
       NODE_ENV: ${NODE_ENV:-development}
       BACKEND_PORT: ${BACKEND_PORT:-3000}
       DATABASE_PATH: ${DATABASE_PATH:-/app/data/app.db}
+      NOTION_API_KEY: ${NOTION_API_KEY:-}
+      NOTION_DATABASE_ID: ${NOTION_DATABASE_ID:-}
     ports:
       - "${BACKEND_PORT:-3000}:3000"
     volumes:

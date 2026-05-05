@@ -8,7 +8,9 @@
     "start": "node src/server.js",
     "db:init": "node src/db/init.js",
     "rss:fetch": "node src/scripts/fetchRss.js",
-    "summary:post": "node src/scripts/postSummaryFromFile.js"
+    "summary:post": "node src/scripts/postSummaryFromFile.js",
+    "notion:sync": "node src/scripts/syncNotionQueueItem.js",
+    "notion:sync:queued": "node src/scripts/syncQueuedNotionItems.js"
   },
   "dependencies": {
     "better-sqlite3": "^11.10.0",

@@ -203,6 +203,18 @@ Content-Type: application/json
 }
 ```
 
+### Notionキュー一覧
+
+```http
+GET /api/notion/queue
+```
+
+### Notion 1件手動同期
+
+```http
+POST /api/notion/queue/:id/sync
+```
+
 レスポンスには、ソースごとの取得件数、新規保存件数、重複スキップ件数、エラー内容が含まれます。ひとつのフィードで失敗しても、他のフィード取得は継続します。
 
 ## RSS取得
@@ -248,6 +260,14 @@ docker compose exec backend npm run rss:fetch
 - Notionに保存するのは、基本的に `試したい` にした記事のみです
 - `後で読む` はローカルのリアクションとして保持しますが、Notionキューには追加しません
 - Phase 4 の Notion 同期対象は `notion_queue` に入った `try_later` のみです
+
+## Phase 4の手動同期
+
+- `GET /api/notion/queue` で同期対象の `try_later` キューを確認できます
+- `POST /api/notion/queue/:id/sync` で1件だけ手動同期できます
+- CLI では `docker compose exec backend npm run notion:sync -- <queueId>` が使えます
+- まとめて同期する場合は `docker compose exec backend npm run notion:sync:queued -- --limit 5` が使えます
+- 詳細は [docs/notion.md](/abs/c:/Users/rinnr/Documents/GitHub/tech-catchup/docs/notion.md:1) にまとめています
 
 ## Phase 3の運用
 
