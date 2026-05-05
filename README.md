@@ -248,6 +248,7 @@ docker compose exec backend npm run rss:fetch
 - 未要約記事は `GET /api/articles/unsummarized` でJSON取得できます
 - Codex用のプロンプトは [prompts/article_summary.md](/abs/c:/Users/rinnr/Documents/GitHub/tech-catchup/prompts/article_summary.md:1) に配置しています
 - 保存手順は [docs/summary-workflow.md](/abs/c:/Users/rinnr/Documents/GitHub/tech-catchup/docs/summary-workflow.md:1) にまとめています
+- 日本語要約を安全に送る手順は [docs/encoding.md](/abs/c:/Users/rinnr/Documents/GitHub/tech-catchup/docs/encoding.md:1) にまとめています
 
 ## Windowsで常時起動する場合
 
