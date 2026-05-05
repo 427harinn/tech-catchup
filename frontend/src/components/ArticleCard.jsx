@@ -62,15 +62,8 @@ export function ArticleCard({ article, onReacting }) {
 
       {article.relevance ? (
         <div className="article-card__detail">
-          <h3>自分に関係ある理由</h3>
+          <h3>関係ある理由</h3>
           <p>{article.relevance}</p>
-        </div>
-      ) : null}
-
-      {article.next_action ? (
-        <div className="article-card__detail">
-          <h3>次にやること</h3>
-          <p>{article.next_action}</p>
         </div>
       ) : null}
 

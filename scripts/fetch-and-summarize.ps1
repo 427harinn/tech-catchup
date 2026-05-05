@@ -1,13 +1,17 @@
 [CmdletBinding()]
 param(
-  [int]$Limit = 5,
+  [int]$Limit = 10,
   [string]$ApiBaseUrl = 'http://localhost:3000',
-  [switch]$SkipRssFetch
+  [switch]$SkipRssFetch,
+  [string]$PickupMode = $env:PICKUP_MODE
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-$Limit = [Math]::Min([Math]::Max($Limit, 1), 5)
+$Limit = [Math]::Min([Math]::Max($Limit, 1), 10)
+if ([string]::IsNullOrWhiteSpace($PickupMode)) {
+  $PickupMode = 'latest'
+}
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $logsDir = Join-Path $repoRoot 'logs'
@@ -102,6 +106,25 @@ function Resolve-CommandPath {
   }
 
   throw "Required command not found: $($Candidates -join ', ')"
+}
+
+function Get-OptionalPropertyValue {
+  param(
+    $Object,
+    [Parameter(Mandatory = $true)]
+    [string]$PropertyName
+  )
+
+  if ($null -eq $Object) {
+    return $null
+  }
+
+  $property = $Object.PSObject.Properties[$PropertyName]
+  if ($null -eq $property) {
+    return $null
+  }
+
+  return $property.Value
 }
 
 function Acquire-Lock {
@@ -223,7 +246,14 @@ function Invoke-ArticleSummaryWorkflow {
     [pscustomobject]$Article
   )
 
-  Write-Log "Selected article id=$($Article.id) source=$($Article.source) title=$($Article.title)"
+  $pickup = Get-OptionalPropertyValue -Object $Article -PropertyName 'pickup'
+  $pickupSlot = Get-OptionalPropertyValue -Object $pickup -PropertyName 'slot'
+  $pickupReason = Get-OptionalPropertyValue -Object $pickup -PropertyName 'reason'
+  if ($pickupSlot) {
+    Write-Log "Selected article id=$($Article.id) source=$($Article.source) slot=$pickupSlot reason=$pickupReason title=$($Article.title)"
+  } else {
+    Write-Log "Selected article id=$($Article.id) source=$($Article.source) title=$($Article.title)"
+  }
 
   $codexResult = Invoke-CodexSummary -Article $Article
   $summaryJson = ($codexResult.Parsed | ConvertTo-Json -Depth 10)
@@ -260,7 +290,46 @@ function Invoke-ArticleSummaryWorkflow {
     status = 'succeeded'
     summary_file = $summaryFilePath
     article_status = [string]$savedArticle.article.status
+    slot = if ($pickupSlot) { [string]$pickupSlot } else { $null }
+    reason = if ($pickupReason) { [string]$pickupReason } else { $null }
   }
+}
+
+function Get-ArticlesToSummarize {
+  $normalizedMode = $script:PickupMode.ToLowerInvariant()
+
+  if ($normalizedMode -eq 'score') {
+    try {
+      $pickupUrl = "$script:ApiBaseUrl/api/articles/pickup?limit=$Limit&include_failed=false"
+      Write-Log "Fetching picked articles: $pickupUrl"
+      $pickupResponse = Invoke-RestMethod -Uri $pickupUrl -Method Get
+      $pickedArticles = @($pickupResponse.articles)
+
+      if ($pickedArticles.Count -gt 0) {
+        Write-Log "Fetched $($pickedArticles.Count) picked article(s)."
+        foreach ($pickedArticle in $pickedArticles) {
+          $pickup = Get-OptionalPropertyValue -Object $pickedArticle -PropertyName 'pickup'
+          if ($pickup) {
+            $slot = Get-OptionalPropertyValue -Object $pickup -PropertyName 'slot'
+            $reason = Get-OptionalPropertyValue -Object $pickup -PropertyName 'reason'
+            Write-Log "Pickup article id=$($pickedArticle.id) slot=$slot reason=$reason"
+          }
+        }
+        return $pickedArticles
+      }
+
+      Write-Log 'Pickup API returned no articles. Falling back to latest unsummarized articles.'
+    } catch {
+      Write-Log "Pickup API failed. Falling back to latest unsummarized articles. message=$($_.Exception.Message)"
+    }
+  }
+
+  $unsummarizedUrl = "$ApiBaseUrl/api/articles/unsummarized?limit=$Limit&include_failed=false"
+  Write-Log "Fetching unsummarized articles: $unsummarizedUrl"
+  $unsummarizedResponse = Invoke-RestMethod -Uri $unsummarizedUrl -Method Get
+  $articles = @($unsummarizedResponse.articles)
+  Write-Log "Fetched $($articles.Count) unsummarized article(s)."
+  return $articles
 }
 
 New-Item -ItemType Directory -Force -Path $logsDir | Out-Null
@@ -288,7 +357,7 @@ try {
   Write-Log "Using codex command: $codexCommand"
   Write-Log "Using docker command: $dockerCommand"
 
-  Write-Log "Starting fetch-and-summarize. repo_root=$repoRoot limit=$Limit api_base_url=$ApiBaseUrl"
+  Write-Log "Starting fetch-and-summarize. repo_root=$repoRoot limit=$Limit api_base_url=$ApiBaseUrl pickup_mode=$PickupMode"
 
   if (-not $SkipRssFetch) {
     Invoke-LoggedCommand -Label 'rss:fetch' -Action {
@@ -298,11 +367,9 @@ try {
     Write-Log 'RSS fetch skipped by option.'
   }
 
-  $unsummarizedUrl = "$ApiBaseUrl/api/articles/unsummarized?limit=$Limit&include_failed=false"
-  Write-Log "Fetching unsummarized articles: $unsummarizedUrl"
-  $unsummarizedResponse = Invoke-RestMethod -Uri $unsummarizedUrl -Method Get
+  $articles = @(Get-ArticlesToSummarize)
 
-  if (-not $unsummarizedResponse.articles -or $unsummarizedResponse.articles.Count -eq 0) {
+  if ($articles.Count -eq 0) {
     Write-Log 'No unsummarized articles found.'
     $emptySummary = [pscustomobject]@{
       attempted = 0
@@ -315,13 +382,10 @@ try {
     exit 0
   }
 
-  $articles = @($unsummarizedResponse.articles)
   $results = @()
   $attempted = 0
   $succeeded = 0
   $failed = 0
-
-  Write-Log "Fetched $($articles.Count) unsummarized article(s)."
 
   foreach ($article in $articles) {
     $attempted += 1
@@ -340,6 +404,8 @@ try {
         title = [string]$article.title
         status = 'failed'
         summary_file = $null
+        slot = if ((Get-OptionalPropertyValue -Object (Get-OptionalPropertyValue -Object $article -PropertyName 'pickup') -PropertyName 'slot')) { [string](Get-OptionalPropertyValue -Object (Get-OptionalPropertyValue -Object $article -PropertyName 'pickup') -PropertyName 'slot') } else { $null }
+        reason = if ((Get-OptionalPropertyValue -Object (Get-OptionalPropertyValue -Object $article -PropertyName 'pickup') -PropertyName 'reason')) { [string](Get-OptionalPropertyValue -Object (Get-OptionalPropertyValue -Object $article -PropertyName 'pickup') -PropertyName 'reason') } else { $null }
         error = $message
       }
     }

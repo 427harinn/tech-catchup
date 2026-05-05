@@ -41,6 +41,10 @@ jobs が running → succeeded / failed / skipped になる
 
 成功またはスキップ時は `attempted / succeeded / failed` を表示します。
 
+通常運用では `scripts/fetch-and-summarize.ps1` が最大 10 件を処理します。
+スコアピックアップを使う場合の目安配分は `interest 7 / important 2 / exploration 1` です。
+5件に戻したい場合は PowerShell から `.\scripts\fetch-and-summarize.ps1 -Limit 5` を使えます。
+
 ## API
 
 ジョブ登録:

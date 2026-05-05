@@ -76,7 +76,7 @@ export function listArticles({ status, saved, sort, limit, includeArchived = fal
   `).all(params).map(parseJsonColumns);
 }
 
-export function listUnsummarizedArticles({ limit = 5, includeFailed = true } = {}) {
+export function listUnsummarizedArticles({ limit = 10, includeFailed = true } = {}) {
   const db = getDb();
   const params = {
     limit: normalizeLimit(limit)
@@ -535,13 +535,13 @@ function normalizeSummaryPayload(payload) {
   const summary_short = String(payload.summary_short || '').trim();
   const tech_points = String(payload.tech_points || '').trim();
   const relevance = String(payload.relevance || '').trim();
-  const next_action = String(payload.next_action || '').trim();
+  const next_action = String(payload.next_action || '').trim() || null;
   const tags = Array.isArray(payload.tags)
     ? payload.tags.map((tag) => String(tag).trim()).filter(Boolean)
     : [];
   const priority = Number(payload.priority);
 
-  if (!summary_short || !tech_points || !relevance || !next_action) {
+  if (!summary_short || !tech_points || !relevance) {
     const error = new Error('Summary fields are required.');
     error.status = 400;
     throw error;
@@ -566,7 +566,7 @@ function normalizeSummaryPayload(payload) {
 function normalizeLimit(value) {
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed <= 0) {
-    return 5;
+    return 10;
   }
 
   return Math.min(parsed, 10);

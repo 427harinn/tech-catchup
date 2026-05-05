@@ -10,6 +10,7 @@
     "rss:fetch": "node src/scripts/fetchRss.js",
     "summary:post": "node src/scripts/postSummaryFromFile.js",
     "articles:archive-old": "node src/scripts/archiveOldArticles.js",
+    "articles:pickup": "node src/scripts/pickupArticles.js",
     "notion:sync": "node src/scripts/syncNotionQueueItem.js",
     "notion:sync:queued": "node src/scripts/syncQueuedNotionItems.js"
   },

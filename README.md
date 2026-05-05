@@ -306,3 +306,5 @@ Tailscale による個人用本番運用の手順は [docs/tailscale.md](/abs/c:/Users/User/Do
 Windows ホスト側 runner server の起動方法とジョブ通知方式は [docs/runner-server.md](docs/runner-server.md) を参照してください。
 
 古い記事を rchived_at で非表示に整理する運用は [docs/articles-archive.md](docs/articles-archive.md) を参照してください。
+
+要約対象を興味・重要度・探索でピックアップする方針は [docs/article-pickup.md](docs/article-pickup.md) を参照してください。

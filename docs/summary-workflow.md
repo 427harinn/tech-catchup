@@ -7,7 +7,7 @@ Phase 3では、Codexが要約した結果をAPIで保存し、アプリ上で�
 ## 1. 未要約記事を取得する
 
 ```http
-GET /api/articles/unsummarized?limit=5
+GET /api/articles/unsummarized?limit=10
 ```
 
 必要に応じて `include_failed=false` を付けると、失敗済み記事を除外できます。
@@ -45,7 +45,6 @@ Content-Type: application/json
   "summary_short": "3行程度の要約",
   "tech_points": "技術的に重要なポイント",
   "relevance": "自分に関係ある理由",
-  "next_action": "試すなら次にやること",
   "tags": ["AI", "Web", "Cloudflare"],
   "priority": 4
 }

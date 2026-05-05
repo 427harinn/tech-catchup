@@ -11,6 +11,10 @@ Windows タスクスケジューラから、Codex CLI を使う RSS 取得 + 要
 - summary JSON 保存
 - DBへの summary 保存
 
+通常運用では 1 回で最大 10 件を処理します。
+スコアピックアップを使う場合の目安配分は `interest 7 / important 2 / exploration 1` です。
+5件に戻したい場合は、タスクの引数を `.\scripts\fetch-and-summarize.ps1 -Limit 5` 相当に変更します。
+
 含めないもの:
 
 - Notion同期

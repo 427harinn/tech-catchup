@@ -1,4 +1,5 @@
 import express from 'express';
+import { pickupArticles } from '../services/articlePickupService.js';
 import {
   archiveOldArticles,
   createArticle,
@@ -29,7 +30,7 @@ articlesRouter.get('/', (req, res) => {
 articlesRouter.get('/unsummarized', (req, res) => {
   const { limit, include_failed } = req.query;
   const articles = listUnsummarizedArticles({
-    limit: limit || 5,
+    limit: limit || 10,
     includeFailed: include_failed !== 'false'
   });
 
@@ -37,6 +38,20 @@ articlesRouter.get('/unsummarized', (req, res) => {
     articles,
     count: articles.length
   });
+});
+
+articlesRouter.get('/pickup', (req, res, next) => {
+  try {
+    const { limit, include_failed } = req.query;
+    const result = pickupArticles({
+      limit: limit || undefined,
+      includeFailed: include_failed === 'true'
+    });
+
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
 });
 
 articlesRouter.post('/', (req, res, next) => {

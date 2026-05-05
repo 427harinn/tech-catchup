@@ -147,9 +147,6 @@ function buildNotionCreatePagePayload(article, syncedAt) {
     自分に関係ある理由: {
       rich_text: toRichTextArray(article.relevance || '', 2000)
     },
-    次にやること: {
-      rich_text: toRichTextArray(article.next_action || '', 2000)
-    },
     登録日: {
       date: {
         start: syncedAt
