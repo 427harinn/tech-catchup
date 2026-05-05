@@ -241,6 +241,38 @@ a {
   line-height: 1.55;
 }
 
+.article-card__detail {
+  display: grid;
+  gap: 4px;
+}
+
+.article-card__detail h3 {
+  margin: 0;
+  color: #274438;
+  font-size: 0.86rem;
+}
+
+.article-card__detail p {
+  margin: 0;
+  color: #334038;
+  line-height: 1.55;
+}
+
+.article-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.article-card__tags span {
+  border-radius: 999px;
+  padding: 5px 9px;
+  color: #5c4022;
+  background: #f7e8c7;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
 .article-card__date {
   color: #68746b;
   font-size: 0.82rem;

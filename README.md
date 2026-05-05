@@ -170,6 +170,39 @@ GET /api/rss/sources
 POST /api/rss/fetch
 ```
 
+### 未要約記事取得
+
+```http
+GET /api/articles/unsummarized?limit=5
+```
+
+### 要約結果保存
+
+```http
+POST /api/articles/:id/summary
+Content-Type: application/json
+
+{
+  "summary_short": "3行程度の要約",
+  "tech_points": "技術的に重要なポイント",
+  "relevance": "自分に関係ある理由",
+  "next_action": "試すなら次にやること",
+  "tags": ["AI", "Web", "Cloudflare"],
+  "priority": 4
+}
+```
+
+### 要約失敗記録
+
+```http
+POST /api/articles/:id/summary
+Content-Type: application/json
+
+{
+  "status": "failed"
+}
+```
+
 レスポンスには、ソースごとの取得件数、新規保存件数、重複スキップ件数、エラー内容が含まれます。ひとつのフィードで失敗しても、他のフィード取得は継続します。
 
 ## RSS取得
@@ -209,6 +242,12 @@ docker compose exec backend npm run rss:fetch
 - 要約は元記事の代替になりすぎない範囲に留めます
 - 大量アクセスを避け、将来の本文取得でもアクセス頻度を抑えます
 - 利用規約や `robots.txt` に反する取得は行いません
+
+## Phase 3の運用
+
+- 未要約記事は `GET /api/articles/unsummarized` でJSON取得できます
+- Codex用のプロンプトは [prompts/article_summary.md](/abs/c:/Users/rinnr/Documents/GitHub/tech-catchup/prompts/article_summary.md:1) に配置しています
+- 保存手順は [docs/summary-workflow.md](/abs/c:/Users/rinnr/Documents/GitHub/tech-catchup/docs/summary-workflow.md:1) にまとめています
 
 ## Windowsで常時起動する場合
 

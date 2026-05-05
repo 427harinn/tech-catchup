@@ -11,7 +11,7 @@ const statusLabels = {
   new: '未要約',
   queued: 'Notion同期待ち',
   summarized: '要約済み',
-  failed: '失敗'
+  failed: '要約失敗'
 };
 
 const sourceLabels = {
@@ -38,6 +38,7 @@ export function ArticleCard({ article, onReacting }) {
           {article.source === 'manual' ? <BookmarkPlus size={14} /> : <Rss size={14} />}
           {sourceLabels[article.source] || article.source}
         </span>
+        {article.priority ? <span>優先度 {article.priority}</span> : null}
       </div>
 
       <h2>{article.title}</h2>
@@ -46,13 +47,40 @@ export function ArticleCard({ article, onReacting }) {
         {article.url}
       </a>
 
-      {article.raw_excerpt && !article.summary_short && (
-        <p className="article-card__summary">{article.raw_excerpt}</p>
-      )}
-
-      {article.summary_short && (
+      {article.summary_short ? (
         <p className="article-card__summary">{article.summary_short}</p>
-      )}
+      ) : article.raw_excerpt ? (
+        <p className="article-card__summary">{article.raw_excerpt}</p>
+      ) : null}
+
+      {article.tech_points ? (
+        <div className="article-card__detail">
+          <h3>技術ポイント</h3>
+          <p>{article.tech_points}</p>
+        </div>
+      ) : null}
+
+      {article.relevance ? (
+        <div className="article-card__detail">
+          <h3>自分に関係ある理由</h3>
+          <p>{article.relevance}</p>
+        </div>
+      ) : null}
+
+      {article.next_action ? (
+        <div className="article-card__detail">
+          <h3>次にやること</h3>
+          <p>{article.next_action}</p>
+        </div>
+      ) : null}
+
+      {Array.isArray(article.tags) && article.tags.length > 0 ? (
+        <div className="article-card__tags">
+          {article.tags.map((tag) => (
+            <span key={`${article.id}-${tag}`}>{tag}</span>
+          ))}
+        </div>
+      ) : null}
 
       <div className="article-card__date">登録: {createdAt}</div>
 
