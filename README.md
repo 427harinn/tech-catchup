@@ -201,6 +201,15 @@ docker compose exec backend npm run rss:fetch
 - 同じ `url` の記事は `articles.url` の一意制約と事前確認で重複保存されません。
 - `RSS_FETCH_TIMEOUT_MS` と `RSS_MAX_ITEMS_PER_SOURCE` は `.env` で調整できます。
 
+## 取得と要約の方針
+
+- RSSではタイトル、URL、概要、公開日を中心に扱います
+- 記事本文全文はDBやNotionに保存しません
+- 元記事URLは必ず残します
+- 要約は元記事の代替になりすぎない範囲に留めます
+- 大量アクセスを避け、将来の本文取得でもアクセス頻度を抑えます
+- 利用規約や `robots.txt` に反する取得は行いません
+
 ## Windowsで常時起動する場合
 
 まずはDocker DesktopをWindows起動時に立ち上がるよう設定し、このリポジトリで以下を実行します。
