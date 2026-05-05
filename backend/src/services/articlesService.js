@@ -1,0 +1,191 @@
+import { getDb } from '../db/database.js';
+
+const validReactions = new Set(['interested', 'not_interested', 'read_later', 'try_later']);
+const queueReactions = new Set(['read_later', 'try_later']);
+
+export function listArticles({ status, saved } = {}) {
+  const db = getDb();
+  const params = {};
+  const where = [];
+
+  if (status) {
+    where.push('a.status = @status');
+    params.status = status;
+  }
+
+  if (saved) {
+    where.push(`
+      EXISTS (
+        SELECT 1
+        FROM notion_queue nq
+        WHERE nq.article_id = a.id
+          AND nq.status = 'queued'
+      )
+    `);
+  }
+
+  const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+  return db.prepare(`
+    SELECT
+      a.id,
+      a.title,
+      a.url,
+      a.source,
+      a.published_at,
+      a.fetched_at,
+      a.raw_excerpt,
+      a.status,
+      a.created_at,
+      a.updated_at,
+      s.summary_short,
+      s.tech_points,
+      s.relevance,
+      s.next_action,
+      s.tags,
+      s.priority,
+      COALESCE((
+        SELECT json_group_array(reaction)
+        FROM reactions r
+        WHERE r.article_id = a.id
+      ), '[]') AS reactions,
+      COALESCE((
+        SELECT json_group_array(type)
+        FROM notion_queue nq
+        WHERE nq.article_id = a.id
+          AND nq.status = 'queued'
+      ), '[]') AS notion_queue_types
+    FROM articles a
+    LEFT JOIN summaries s ON s.article_id = a.id
+    ${whereSql}
+    ORDER BY datetime(a.created_at) DESC, a.id DESC
+  `).all(params).map(parseJsonColumns);
+}
+
+export function getArticle(id) {
+  const db = getDb();
+  const article = db.prepare(`
+    SELECT
+      a.*,
+      s.summary_short,
+      s.tech_points,
+      s.relevance,
+      s.next_action,
+      s.tags,
+      s.priority,
+      COALESCE((
+        SELECT json_group_array(reaction)
+        FROM reactions r
+        WHERE r.article_id = a.id
+      ), '[]') AS reactions,
+      COALESCE((
+        SELECT json_group_array(type)
+        FROM notion_queue nq
+        WHERE nq.article_id = a.id
+          AND nq.status = 'queued'
+      ), '[]') AS notion_queue_types
+    FROM articles a
+    LEFT JOIN summaries s ON s.article_id = a.id
+    WHERE a.id = @id
+  `).get({ id });
+
+  return article ? parseJsonColumns(article) : null;
+}
+
+export function createArticle({ title, url, source = 'manual' }) {
+  const db = getDb();
+  const now = new Date().toISOString();
+  const trimmedUrl = String(url || '').trim();
+  const trimmedTitle = String(title || '').trim() || trimmedUrl;
+
+  if (!trimmedUrl) {
+    const error = new Error('URL is required.');
+    error.status = 400;
+    throw error;
+  }
+
+  try {
+    const result = db.prepare(`
+      INSERT INTO articles (
+        title,
+        url,
+        source,
+        fetched_at,
+        status,
+        created_at,
+        updated_at
+      )
+      VALUES (@title, @url, @source, @fetched_at, 'new', @created_at, @updated_at)
+    `).run({
+      title: trimmedTitle,
+      url: trimmedUrl,
+      source: source || 'manual',
+      fetched_at: now,
+      created_at: now,
+      updated_at: now
+    });
+
+    return getArticle(result.lastInsertRowid);
+  } catch (error) {
+    if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+      const existing = db.prepare('SELECT id FROM articles WHERE url = @url').get({ url: trimmedUrl });
+      const duplicate = new Error('This URL is already registered.');
+      duplicate.status = 409;
+      duplicate.article = existing ? getArticle(existing.id) : null;
+      throw duplicate;
+    }
+
+    throw error;
+  }
+}
+
+export function createReaction(articleId, reaction) {
+  if (!validReactions.has(reaction)) {
+    const error = new Error('Invalid reaction.');
+    error.status = 400;
+    throw error;
+  }
+
+  const db = getDb();
+  const article = getArticle(articleId);
+  if (!article) {
+    const error = new Error('Article not found.');
+    error.status = 404;
+    throw error;
+  }
+
+  const now = new Date().toISOString();
+  const tx = db.transaction(() => {
+    db.prepare(`
+      INSERT INTO reactions (article_id, reaction, created_at)
+      VALUES (@article_id, @reaction, @created_at)
+    `).run({ article_id: articleId, reaction, created_at: now });
+
+    if (queueReactions.has(reaction)) {
+      db.prepare(`
+        INSERT INTO notion_queue (article_id, type, status, created_at)
+        VALUES (@article_id, @type, 'queued', @created_at)
+      `).run({ article_id: articleId, type: reaction, created_at: now });
+
+      db.prepare(`
+        UPDATE articles
+        SET status = 'queued',
+            updated_at = @updated_at
+        WHERE id = @id
+          AND status != 'summarized'
+      `).run({ id: articleId, updated_at: now });
+    }
+  });
+
+  tx();
+  return getArticle(articleId);
+}
+
+function parseJsonColumns(article) {
+  return {
+    ...article,
+    reactions: JSON.parse(article.reactions || '[]'),
+    notion_queue_types: JSON.parse(article.notion_queue_types || '[]')
+  };
+}
+
