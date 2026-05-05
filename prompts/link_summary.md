@@ -1,44 +1,49 @@
 # Link Summary Prompt
 
-以下の URL と補足情報をもとに、日本語で要約してください。
+次の入力をもとに、日本語で要約してください。
 
-入力に `fetched_page` が含まれる場合は、それを「URLから取得できた本文・概要」として最優先で使ってください。
+優先順位:
 
-重要:
+1. `pasted_body_text`
+2. `fetched_page`
+3. URLから確認できた内容
 
-- URL の内容を確認できる場合だけ、その内容に基づいて要約すること
-- URL の内容を十分に確認できない場合は、推測で埋めず `needs_manual_text: true` を返すこと
-- URL を実際に確認できない場合、ローカルファイル、prompt本文、schema、workspace 内容を要約対象にしてはいけない
+ルール:
+
+- `pasted_body_text` がある場合は、それを最優先で使うこと
+- URL本文を十分に確認できない場合でも、`pasted_body_text` があるならその本文をもとに要約してよい
+- `pasted_body_text` もなく、URL本文も確認できない場合だけ `needs_manual_text: true` にすること
+- local file、prompt、schema、workspace、repo の内容を記事本文として要約しないこと
 - 出力は JSON のみ
-- `relevance` は短く、1〜2文で書くこと
-- `title_suggested` は、URL内容から自然に取れるタイトルがあれば使うこと
-- `raw_excerpt` は、取得できた概要や入力メモを短くまとめたもの
+- `relevance` は短く 1〜2文
+- `title_suggested` は保存に使える自然なタイトル
+- `raw_excerpt` は短い要約か、使った本文の短い抜粋
 
 `needs_manual_text: true` の場合:
 
-- `summary_short`, `tech_points`, `relevance`, `next_action` は空文字でよい
-- `tags` は空配列でよい
+- `summary_short`, `tech_points`, `relevance`, `next_action` は短い説明でよい
+- `tags` は空でもよい
 - `priority` は 1 でよい
-- `source_type` は推定できる範囲で入れてよい
+- `source_type` は `unverified` など分かる値でよい
 
 出力形式:
 
 ```json
 {
-  "title_suggested": "推定タイトル",
-  "summary_short": "3行程度の要約",
-  "tech_points": "技術的に重要なポイント",
-  "relevance": "関係ある理由を1〜2文で短く",
-  "next_action": "必要なら次に見る観点",
+  "title_suggested": "保存用タイトル",
+  "summary_short": "3文以内の要約",
+  "tech_points": "技術的な要点",
+  "relevance": "関係ある理由",
+  "next_action": "次の行動",
   "tags": ["AI", "Web"],
   "priority": 3,
   "source_type": "article",
-  "raw_excerpt": "取得できた概要またはメモの短い要約",
+  "raw_excerpt": "短い抜粋",
   "needs_manual_text": false
 }
 ```
 
-対象入力:
+入力:
 
 ```json
 {{LINK_INPUT_JSON}}

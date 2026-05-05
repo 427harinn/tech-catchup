@@ -20,7 +20,7 @@ export function ArticleForm({ form, saving, onChange, onSubmit }) {
           type="text"
           value={form.title}
           onChange={(event) => onChange({ ...form, title: event.target.value })}
-          placeholder="未入力ならURLをタイトルにします"
+          placeholder="未入力ならURL先や要約結果から補います"
         />
       </label>
 
@@ -29,8 +29,18 @@ export function ArticleForm({ form, saving, onChange, onSubmit }) {
         <textarea
           value={form.memo}
           onChange={(event) => onChange({ ...form, memo: event.target.value })}
-          placeholder="補足メモや、URLだけでは分かりにくい背景があれば入力"
+          placeholder="補足メモ。URLだけでは分かりにくい背景があれば入力"
           rows={3}
+        />
+      </label>
+
+      <label>
+        本文 任意
+        <textarea
+          value={form.body_text}
+          onChange={(event) => onChange({ ...form, body_text: event.target.value })}
+          placeholder="X / Twitter などURL本文を読みづらいときは、ここに本文を貼り付けて要約できます"
+          rows={8}
         />
       </label>
 
@@ -41,4 +51,3 @@ export function ArticleForm({ form, saving, onChange, onSubmit }) {
     </form>
   );
 }
-

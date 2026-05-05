@@ -308,11 +308,13 @@ export function saveManualSummarizedArticle({
   url,
   title,
   memo = null,
+  body_text = null,
   summary
 }) {
   const trimmedUrl = String(url || '').trim();
   const trimmedTitle = String(title || '').trim();
   const trimmedMemo = String(memo || '').trim();
+  const trimmedBodyText = String(body_text || '').trim();
 
   if (!trimmedUrl) {
     const error = new Error('URL is required.');
@@ -321,7 +323,7 @@ export function saveManualSummarizedArticle({
   }
 
   const sourceTitle = trimmedTitle || String(summary?.title_suggested || '').trim() || trimmedUrl;
-  const rawExcerpt = String(summary?.raw_excerpt || '').trim() || trimmedMemo || null;
+  const rawExcerpt = String(summary?.raw_excerpt || '').trim() || trimmedMemo || trimmedBodyText.slice(0, 600) || null;
   const articleResult = createArticleIfNotExists({
     title: sourceTitle,
     url: trimmedUrl,

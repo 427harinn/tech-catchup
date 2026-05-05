@@ -23,7 +23,7 @@ const ACTIVE_JOB_STATUSES = new Set(['queued', 'running']);
 export function App() {
   const [articles, setArticles] = useState([]);
   const [filter, setFilter] = useState('all');
-  const [form, setForm] = useState({ url: '', title: '', memo: '' });
+  const [form, setForm] = useState({ url: '', title: '', memo: '', body_text: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [fetchingRss, setFetchingRss] = useState(false);
@@ -130,7 +130,7 @@ export function App() {
     try {
       const result = await createSummarizeLinkJob(form);
       setLatestLinkJob(result.job || null);
-      setForm({ url: '', title: '', memo: '' });
+      setForm({ url: '', title: '', memo: '', body_text: '' });
       setMessage(toLinkJobCreationMessage(result));
       await loadLatestLinkJob({ silent: true });
     } catch (requestError) {

@@ -85,6 +85,7 @@ function Invoke-CodexLinkSummary {
     [string]$Url,
     [string]$Title,
     [string]$Memo,
+    [string]$BodyText,
     $FetchedPage = $null
   )
 
@@ -92,6 +93,7 @@ function Invoke-CodexLinkSummary {
     url = $Url
     title = if ([string]::IsNullOrWhiteSpace($Title)) { $null } else { $Title }
     memo = if ([string]::IsNullOrWhiteSpace($Memo)) { $null } else { $Memo }
+    pasted_body_text = if ([string]::IsNullOrWhiteSpace($BodyText)) { $null } else { $BodyText }
     fetched_page = $FetchedPage
   }
 
@@ -260,7 +262,8 @@ function Normalize-SummaryPayload {
     [Parameter(Mandatory = $true)]
     $Parsed,
     [string]$FallbackTitle,
-    [string]$FallbackMemo
+    [string]$FallbackMemo,
+    [string]$FallbackBodyText
   )
 
   return [pscustomobject]@{
@@ -272,7 +275,13 @@ function Normalize-SummaryPayload {
     tags = @($Parsed.tags)
     priority = [int]$Parsed.priority
     source_type = StringOrEmpty $Parsed.source_type
-    raw_excerpt = if (-not [string]::IsNullOrWhiteSpace((StringOrEmpty $Parsed.raw_excerpt))) { StringOrEmpty $Parsed.raw_excerpt } else { (StringOrEmpty $FallbackMemo) }
+    raw_excerpt = if (-not [string]::IsNullOrWhiteSpace((StringOrEmpty $Parsed.raw_excerpt))) {
+      StringOrEmpty $Parsed.raw_excerpt
+    } elseif (-not [string]::IsNullOrWhiteSpace((StringOrEmpty $FallbackMemo))) {
+      StringOrEmpty $FallbackMemo
+    } else {
+      (StringOrEmpty $FallbackBodyText)
+    }
     needs_manual_text = [bool]$Parsed.needs_manual_text
   }
 }
@@ -284,6 +293,26 @@ function StringOrEmpty {
   }
 
   return [string]$Value
+}
+
+function Get-OptionalPayloadValue {
+  param(
+    [Parameter(Mandatory = $true)]
+    $Payload,
+    [Parameter(Mandatory = $true)]
+    [string]$Name
+  )
+
+  if ($null -eq $Payload) {
+    return $null
+  }
+
+  $property = $Payload.PSObject.Properties[$Name]
+  if ($null -eq $property) {
+    return $null
+  }
+
+  return $property.Value
 }
 
 function Test-NeedsManualText {
@@ -364,20 +393,27 @@ if (-not $job) {
   exit 0
 }
 
-  $payload = $job.payload_json
+$payload = $job.payload_json
 if (-not $payload -or [string]::IsNullOrWhiteSpace([string]$payload.url)) {
   throw "Job payload is missing url. job_id=$($job.id)"
 }
 
+$payloadTitle = [string](Get-OptionalPayloadValue -Payload $payload -Name 'title')
+$payloadMemo = [string](Get-OptionalPayloadValue -Payload $payload -Name 'memo')
+$payloadBodyText = [string](Get-OptionalPayloadValue -Payload $payload -Name 'body_text')
+
 Write-RunnerLog "Picked queued job id=$($job.id) url=$($payload.url)"
+if (-not [string]::IsNullOrWhiteSpace($payloadBodyText)) {
+  Write-RunnerLog "Body text supplied for job id=$($job.id). length=$(($payloadBodyText.Length))"
+}
 Write-RunnerLog "start API sending. url=$ApiBaseUrl/api/jobs/$($job.id)/start"
 $startedJob = (Invoke-JobApi -Method POST -Path "/api/jobs/$($job.id)/start").job
 Write-RunnerLog "Started job id=$($startedJob.id)"
 
 try {
   $fetchedPage = Get-FetchedPage -Url ([string]$payload.url)
-  $codexResult = Invoke-CodexLinkSummary -JobId $job.id -Url ([string]$payload.url) -Title ([string]$payload.title) -Memo ([string]$payload.memo) -FetchedPage $fetchedPage
-  $summary = Normalize-SummaryPayload -Parsed $codexResult.Parsed -FallbackTitle ([string]$payload.title) -FallbackMemo ([string]$payload.memo)
+  $codexResult = Invoke-CodexLinkSummary -JobId $job.id -Url ([string]$payload.url) -Title $payloadTitle -Memo $payloadMemo -BodyText $payloadBodyText -FetchedPage $fetchedPage
+  $summary = Normalize-SummaryPayload -Parsed $codexResult.Parsed -FallbackTitle $payloadTitle -FallbackMemo $payloadMemo -FallbackBodyText $payloadBodyText
   $summaryJson = $summary | ConvertTo-Json -Depth 10
   $summaryFilePath = Join-Path $summaryDir "manual-summary-job-$($job.id).json"
   Write-Utf8NoBomFile -Path $summaryFilePath -Content $summaryJson
@@ -389,8 +425,9 @@ try {
       status = 'needs_manual_text'
       result_json = @{
         url = [string]$payload.url
-        title = if ([string]::IsNullOrWhiteSpace([string]$payload.title)) { $null } else { [string]$payload.title }
-        memo = if ([string]::IsNullOrWhiteSpace([string]$payload.memo)) { $null } else { [string]$payload.memo }
+        title = if ([string]::IsNullOrWhiteSpace($payloadTitle)) { $null } else { $payloadTitle }
+        memo = if ([string]::IsNullOrWhiteSpace($payloadMemo)) { $null } else { $payloadMemo }
+        body_text = if ([string]::IsNullOrWhiteSpace($payloadBodyText)) { $null } else { $payloadBodyText }
         summary_file = $summaryFilePath
         needs_manual_text = $true
         summary = $summary
@@ -408,8 +445,9 @@ try {
       status = 'needs_manual_text'
       result_json = @{
         url = [string]$payload.url
-        title = if ([string]::IsNullOrWhiteSpace([string]$payload.title)) { $null } else { [string]$payload.title }
-        memo = if ([string]::IsNullOrWhiteSpace([string]$payload.memo)) { $null } else { [string]$payload.memo }
+        title = if ([string]::IsNullOrWhiteSpace($payloadTitle)) { $null } else { $payloadTitle }
+        memo = if ([string]::IsNullOrWhiteSpace($payloadMemo)) { $null } else { $payloadMemo }
+        body_text = if ([string]::IsNullOrWhiteSpace($payloadBodyText)) { $null } else { $payloadBodyText }
         summary_file = $summaryFilePath
         needs_manual_text = $true
         reason = 'unverified_url_content'
@@ -423,8 +461,9 @@ try {
   Write-RunnerLog "manual-summary save API sending. job_id=$($job.id)"
   $saveResult = Invoke-JobApi -Method POST -Path '/api/articles/manual-summary' -Body @{
     url = [string]$payload.url
-    title = [string]$payload.title
-    memo = [string]$payload.memo
+    title = $payloadTitle
+    memo = $payloadMemo
+    body_text = $payloadBodyText
     summary = $summary
   }
   Write-RunnerLog "manual-summary save API succeeded. article_id=$($saveResult.article.id)"

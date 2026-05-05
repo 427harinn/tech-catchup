@@ -12,10 +12,11 @@ export function createFetchAndSummarizeJob() {
   return createJob(JOB_TYPES.fetchAndSummarize);
 }
 
-export function createSummarizeLinkJob({ url, title, memo } = {}) {
+export function createSummarizeLinkJob({ url, title, memo, body_text } = {}) {
   const trimmedUrl = String(url || '').trim();
   const trimmedTitle = String(title || '').trim();
   const trimmedMemo = String(memo || '').trim();
+  const trimmedBodyText = String(body_text || '').trim();
 
   if (!trimmedUrl) {
     const error = new Error('URL is required.');
@@ -27,7 +28,8 @@ export function createSummarizeLinkJob({ url, title, memo } = {}) {
     payloadJson: {
       url: trimmedUrl,
       title: trimmedTitle || null,
-      memo: trimmedMemo || null
+      memo: trimmedMemo || null,
+      body_text: trimmedBodyText || null
     }
   });
 }
