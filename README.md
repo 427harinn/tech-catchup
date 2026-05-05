@@ -304,3 +304,5 @@ Tailscale による個人用本番運用の手順は [docs/tailscale.md](/abs/c:/Users/User/Do
 画面の「取得＆要約」ボタンから RSS 取得と Codex 要約を実行する手順は [docs/web-fetch-and-summarize.md](docs/web-fetch-and-summarize.md) を参照してください。
 
 Windows ホスト側 runner server の起動方法とジョブ通知方式は [docs/runner-server.md](docs/runner-server.md) を参照してください。
+
+古い記事を rchived_at で非表示に整理する運用は [docs/articles-archive.md](docs/articles-archive.md) を参照してください。

@@ -2,7 +2,10 @@ import { getDb } from '../db/database.js';
 
 const validReactions = new Set(['interested', 'not_interested', 'read_later', 'try_later']);
 const queueReactions = new Set(['try_later']);
-export function listArticles({ status, saved, sort, limit } = {}) {
+const VISIBLE_ARTICLE_TARGET = 20;
+const DAY_IN_MS = 24 * 60 * 60 * 1000;
+
+export function listArticles({ status, saved, sort, limit, includeArchived = false } = {}) {
   const db = getDb();
   const params = {};
   const where = [];
@@ -24,6 +27,10 @@ export function listArticles({ status, saved, sort, limit } = {}) {
     `);
   }
 
+  if (!includeArchived) {
+    where.push('a.archived_at IS NULL');
+  }
+
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
   return db.prepare(`
@@ -36,6 +43,7 @@ export function listArticles({ status, saved, sort, limit } = {}) {
       a.fetched_at,
       a.raw_excerpt,
       a.status,
+      a.archived_at,
       a.created_at,
       a.updated_at,
       s.summary_short,
@@ -94,6 +102,7 @@ export function listUnsummarizedArticles({ limit = 5, includeFailed = true } = {
       updated_at
     FROM articles
     WHERE status IN (${placeholders.join(', ')})
+      AND archived_at IS NULL
     ORDER BY datetime(created_at) DESC, id DESC
     LIMIT @limit
   `).all(params);
@@ -382,6 +391,136 @@ export function markArticleSummaryFailed(articleId) {
   return getArticle(articleId);
 }
 
+export function archiveOldArticles({ dryRun = false, visibleTarget = VISIBLE_ARTICLE_TARGET } = {}) {
+  const db = getDb();
+  const candidates = db.prepare(`
+    SELECT
+      a.id,
+      a.title,
+      a.status,
+      a.archived_at,
+      a.created_at,
+      a.updated_at,
+      s.generated_at AS summary_generated_at,
+      (
+        SELECT r.reaction
+        FROM reactions r
+        WHERE r.article_id = a.id
+        ORDER BY datetime(r.created_at) DESC, r.id DESC
+        LIMIT 1
+      ) AS latest_reaction,
+      (
+        SELECT r.created_at
+        FROM reactions r
+        WHERE r.article_id = a.id
+        ORDER BY datetime(r.created_at) DESC, r.id DESC
+        LIMIT 1
+      ) AS latest_reaction_at,
+      EXISTS (
+        SELECT 1
+        FROM notion_queue nq
+        WHERE nq.article_id = a.id
+          AND nq.type = 'try_later'
+          AND nq.status IN ('queued', 'failed')
+      ) AS has_pending_notion,
+      EXISTS (
+        SELECT 1
+        FROM notion_queue nq
+        WHERE nq.article_id = a.id
+          AND nq.type = 'try_later'
+      ) AS has_try_later_queue,
+      (
+        SELECT nq.synced_at
+        FROM notion_queue nq
+        WHERE nq.article_id = a.id
+          AND nq.type = 'try_later'
+          AND nq.status = 'synced'
+          AND nq.synced_at IS NOT NULL
+        ORDER BY datetime(nq.synced_at) DESC, nq.id DESC
+        LIMIT 1
+      ) AS latest_try_later_synced_at
+    FROM articles a
+    LEFT JOIN summaries s ON s.article_id = a.id
+    WHERE a.archived_at IS NULL
+    ORDER BY datetime(a.created_at) DESC, a.id DESC
+  `).all();
+
+  const now = new Date();
+  const checked = candidates.length;
+  const archivedArticles = [];
+  const skippedArticles = [];
+  const archiveIds = new Set();
+
+  for (const article of candidates) {
+    const decision = evaluateArchiveRule(article, now);
+    if (decision.archive) {
+      archiveIds.add(article.id);
+      archivedArticles.push(buildArchiveLogEntry(article, decision.reason));
+    } else {
+      skippedArticles.push(buildSkipLogEntry(article, decision.reason));
+    }
+  }
+
+  const remaining = candidates
+    .filter((article) => !archiveIds.has(article.id))
+    .map((article) => ({
+      ...article,
+      protected_from_trim: isProtectedFromTrim(article)
+    }));
+
+  const trimmable = remaining
+    .filter((article) => article.status === 'summarized' && !article.protected_from_trim)
+    .sort(compareArticlesNewestFirst);
+
+  const keepCount = Math.max(0, normalizeArchiveVisibleTarget(visibleTarget));
+  const overflow = trimmable.slice(keepCount);
+
+  for (const article of overflow) {
+    if (archiveIds.has(article.id)) {
+      continue;
+    }
+
+    archiveIds.add(article.id);
+    archivedArticles.push(buildArchiveLogEntry(article, 'max_visible_trim'));
+    removeSkippedEntry(skippedArticles, article.id);
+  }
+
+  const archivedAt = new Date().toISOString();
+  if (!dryRun && archiveIds.size > 0) {
+    const update = db.prepare(`
+      UPDATE articles
+      SET archived_at = @archived_at,
+          updated_at = @updated_at
+      WHERE id = @id
+        AND archived_at IS NULL
+    `);
+
+    const tx = db.transaction((ids) => {
+      for (const id of ids) {
+        update.run({
+          id,
+          archived_at: archivedAt,
+          updated_at: archivedAt
+        });
+      }
+    });
+
+    tx(Array.from(archiveIds));
+  }
+
+  return {
+    checked,
+    archived: archiveIds.size,
+    skipped: checked - archiveIds.size,
+    archived_articles: archivedArticles.sort((left, right) => left.article_id - right.article_id),
+    skipped_articles: skippedArticles
+      .filter((article) => !archiveIds.has(article.article_id))
+      .sort((left, right) => left.article_id - right.article_id),
+    dry_run: dryRun,
+    visible_target: keepCount
+  };
+}
+
 function parseJsonColumns(article) {
   return {
     ...article,
@@ -464,6 +603,133 @@ function buildArticleOrderBy(sort) {
     default:
       return 'ORDER BY datetime(a.created_at) DESC, a.id DESC';
   }
+}
+
+function evaluateArchiveRule(article, now) {
+  if (article.archived_at) {
+    return { archive: false, reason: 'already_archived' };
+  }
+
+  if (article.status !== 'summarized') {
+    return { archive: false, reason: `status_${article.status}` };
+  }
+
+  const latestReaction = article.latest_reaction || null;
+  const latestReactionAt = parseDate(article.latest_reaction_at);
+  const summaryGeneratedAt = parseDate(article.summary_generated_at);
+  const latestTryLaterSyncedAt = parseDate(article.latest_try_later_synced_at);
+  const hasPendingNotion = Boolean(article.has_pending_notion);
+
+  if (latestReaction === 'not_interested') {
+    return evaluateAgeRule(latestReactionAt, now, 1, 'not_interested_expired', 'not_interested_recent');
+  }
+
+  if (latestReaction === 'interested') {
+    return evaluateAgeRule(latestReactionAt, now, 7, 'interested_expired', 'interested_recent');
+  }
+
+  if (latestReaction === 'try_later' || article.has_try_later_queue) {
+    if (hasPendingNotion) {
+      return { archive: false, reason: 'try_later_pending_notion' };
+    }
+
+    return evaluateAgeRule(
+      latestTryLaterSyncedAt,
+      now,
+      3,
+      'try_later_synced_expired',
+      'try_later_synced_recent',
+      'try_later_not_synced'
+    );
+  }
+
+  return evaluateAgeRule(
+    summaryGeneratedAt,
+    now,
+    3,
+    latestReaction === 'read_later' ? 'read_later_expired' : 'no_reaction_expired',
+    latestReaction === 'read_later' ? 'read_later_recent' : 'no_reaction_recent',
+    'summary_missing'
+  );
+}
+
+function evaluateAgeRule(referenceDate, now, thresholdDays, expiredReason, recentReason, missingReason = 'missing_reference_date') {
+  if (!referenceDate) {
+    return { archive: false, reason: missingReason };
+  }
+
+  if (daysSince(referenceDate, now) >= thresholdDays) {
+    return { archive: true, reason: expiredReason };
+  }
+
+  return { archive: false, reason: recentReason };
+}
+
+function isProtectedFromTrim(article) {
+  const latestReaction = article.latest_reaction || null;
+  if (latestReaction === 'interested' || latestReaction === 'try_later') {
+    return true;
+  }
+
+  return Boolean(article.has_pending_notion);
+}
+
+function buildArchiveLogEntry(article, reason) {
+  return {
+    article_id: Number(article.id),
+    title: String(article.title),
+    status: String(article.status),
+    reason
+  };
+}
+
+function buildSkipLogEntry(article, reason) {
+  return {
+    article_id: Number(article.id),
+    title: String(article.title),
+    status: String(article.status),
+    reason
+  };
+}
+
+function removeSkippedEntry(entries, articleId) {
+  const index = entries.findIndex((entry) => entry.article_id === Number(articleId));
+  if (index >= 0) {
+    entries.splice(index, 1);
+  }
+}
+
+function compareArticlesNewestFirst(left, right) {
+  const leftTime = parseDate(left.summary_generated_at || left.updated_at || left.created_at)?.getTime() || 0;
+  const rightTime = parseDate(right.summary_generated_at || right.updated_at || right.created_at)?.getTime() || 0;
+
+  if (rightTime !== leftTime) {
+    return rightTime - leftTime;
+  }
+
+  return Number(right.id) - Number(left.id);
+}
+
+function parseDate(value) {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function daysSince(referenceDate, now) {
+  return (now.getTime() - referenceDate.getTime()) / DAY_IN_MS;
+}
+
+function normalizeArchiveVisibleTarget(value) {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    return VISIBLE_ARTICLE_TARGET;
+  }
+
+  return Math.min(parsed, 200);
 }
 
 function parseJsonValue(value, fallback) {

@@ -1,5 +1,6 @@
 import express from 'express';
 import {
+  archiveOldArticles,
   createArticle,
   markArticleSummaryFailed,
   createReaction,
@@ -13,13 +14,14 @@ import { syncNotionQueueItem } from '../services/notionService.js';
 export const articlesRouter = express.Router();
 
 articlesRouter.get('/', (req, res) => {
-  const { status, saved, sort, limit } = req.query;
+  const { status, saved, sort, limit, include_archived } = req.query;
   res.json({
     articles: listArticles({
       status: status || undefined,
       saved: saved === 'true',
       sort: sort || undefined,
-      limit: limit || undefined
+      limit: limit || undefined,
+      includeArchived: include_archived === 'true'
     })
   });
 });
@@ -109,6 +111,19 @@ articlesRouter.post('/:id/reactions', async (req, res, next) => {
         }
       });
     }
+  } catch (error) {
+    next(error);
+  }
+});
+
+articlesRouter.post('/archive-old', (req, res, next) => {
+  try {
+    const result = archiveOldArticles({
+      dryRun: req.body?.dry_run === true,
+      visibleTarget: req.body?.visible_target
+    });
+
+    res.json(result);
   } catch (error) {
     next(error);
   }

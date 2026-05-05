@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS articles (
   fetched_at TEXT,
   raw_excerpt TEXT,
   status TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'queued', 'summarized', 'failed')),
+  archived_at TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );

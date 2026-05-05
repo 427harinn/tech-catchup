@@ -25,7 +25,22 @@ export function initDb() {
   const database = getDb();
   const schema = fs.readFileSync(schemaPath, 'utf8');
   database.exec(schema);
+  ensureSchemaMigrations(database);
   seedInterestWeights(database);
+}
+
+function ensureSchemaMigrations(database) {
+  ensureColumn(database, 'articles', 'archived_at', 'TEXT');
+  database.exec('CREATE INDEX IF NOT EXISTS idx_articles_archived_at ON articles(archived_at)');
+}
+
+function ensureColumn(database, tableName, columnName, columnDefinition) {
+  const columns = database.prepare(`PRAGMA table_info(${tableName})`).all();
+  const exists = columns.some((column) => column.name === columnName);
+
+  if (!exists) {
+    database.exec(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnDefinition}`);
+  }
 }
 
 function seedInterestWeights(database) {
