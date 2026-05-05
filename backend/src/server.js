@@ -4,6 +4,7 @@ import express from 'express';
 import morgan from 'morgan';
 import { initDb } from './db/database.js';
 import { articlesRouter } from './routes/articles.js';
+import { rssRouter } from './routes/rss.js';
 
 const app = express();
 const port = Number(process.env.BACKEND_PORT || 3000);
@@ -23,6 +24,7 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use('/api/articles', articlesRouter);
+app.use('/api/rss', rssRouter);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Not found.' });

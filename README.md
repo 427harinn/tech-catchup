@@ -12,6 +12,15 @@
 - 後で読む / 試したい を `notion_queue` に追加
 - SQLite DBを `backend/data/app.db` に永続化
 
+## Phase 2で追加したこと
+
+- RSSソース設定ファイル
+- RSS記事の一括取得API
+- フロントからの手動RSS取得ボタン
+- RSS記事の `articles` 保存
+- URL重複時のスキップ処理
+- 取得元ごとのエラー分離
+
 ## 必要環境
 
 - Docker
@@ -148,6 +157,49 @@ Content-Type: application/json
 - `try_later`
 
 `read_later` と `try_later` は `reactions` に保存したうえで、`notion_queue` にも `queued` として追加します。
+
+### RSSソース一覧
+
+```http
+GET /api/rss/sources
+```
+
+### RSS取得実行
+
+```http
+POST /api/rss/fetch
+```
+
+レスポンスには、ソースごとの取得件数、新規保存件数、重複スキップ件数、エラー内容が含まれます。ひとつのフィードで失敗しても、他のフィード取得は継続します。
+
+## RSS取得
+
+画面上部の `RSS取得` ボタンから手動実行できます。バックエンドAPIを直接叩く場合は以下です。
+
+```bash
+curl -X POST http://localhost:3000/api/rss/fetch
+```
+
+CLIから実行したい場合:
+
+```bash
+docker compose exec backend npm run rss:fetch
+```
+
+現在の候補ソースは [backend/src/config/rssSources.js](/abs/c:/Users/rinnr/Documents/GitHub/tech-catchup/backend/src/config/rssSources.js:1) で管理しています。
+
+- `Zenn`
+- `Qiita`
+- `GitHub Blog`
+- `OpenAI Blog`
+- `Cloudflare Blog`
+- `Unity Blog`
+
+補足:
+
+- `Unity Blog` は候補として設定済みですが、安定した公式RSS URLの確認前のため初期状態では `enabled: false` にしています。
+- 同じ `url` の記事は `articles.url` の一意制約と事前確認で重複保存されません。
+- `RSS_FETCH_TIMEOUT_MS` と `RSS_MAX_ITEMS_PER_SOURCE` は `.env` で調整できます。
 
 ## Windowsで常時起動する場合
 

@@ -46,3 +46,8 @@ export function sendReaction(articleId, reaction) {
   });
 }
 
+export function fetchRss() {
+  return request('/api/rss/fetch', {
+    method: 'POST'
+  });
+}

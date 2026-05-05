@@ -3,6 +3,7 @@ import {
   ExternalLink,
   FlaskConical,
   Heart,
+  Rss,
   ThumbsDown
 } from 'lucide-react';
 
@@ -14,7 +15,13 @@ const statusLabels = {
 };
 
 const sourceLabels = {
-  manual: '手動登録'
+  manual: '手動登録',
+  zenn: 'Zenn',
+  qiita: 'Qiita',
+  github_blog: 'GitHub Blog',
+  openai_blog: 'OpenAI Blog',
+  unity_blog: 'Unity Blog',
+  cloudflare_blog: 'Cloudflare Blog'
 };
 
 export function ArticleCard({ article, onReacting }) {
@@ -26,8 +33,11 @@ export function ArticleCard({ article, onReacting }) {
   return (
     <article className="article-card">
       <div className="article-card__meta">
-        <span>{sourceLabels[article.source] || article.source}</span>
         <span>{statusLabels[article.status] || article.status}</span>
+        <span className="article-card__source">
+          {article.source === 'manual' ? <BookmarkPlus size={14} /> : <Rss size={14} />}
+          {sourceLabels[article.source] || article.source}
+        </span>
       </div>
 
       <h2>{article.title}</h2>
@@ -35,6 +45,10 @@ export function ArticleCard({ article, onReacting }) {
       <a className="article-card__url" href={article.url} target="_blank" rel="noreferrer">
         {article.url}
       </a>
+
+      {article.raw_excerpt && !article.summary_short && (
+        <p className="article-card__summary">{article.raw_excerpt}</p>
+      )}
 
       {article.summary_short && (
         <p className="article-card__summary">{article.summary_short}</p>
@@ -79,4 +93,3 @@ function toQueueLabel(type) {
   if (type === 'try_later') return '試したい';
   return type;
 }
-

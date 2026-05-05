@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { RefreshCcw, Rss } from 'lucide-react';
 import { ArticleCard } from './components/ArticleCard.jsx';
 import { ArticleForm } from './components/ArticleForm.jsx';
-import { createArticle, fetchArticles, sendReaction } from './api/client.js';
+import { createArticle, fetchArticles, fetchRss, sendReaction } from './api/client.js';
 
 const filters = [
   { key: 'all', label: '全件' },
@@ -16,6 +17,7 @@ export function App() {
   const [form, setForm] = useState({ url: '', title: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [fetchingRss, setFetchingRss] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
@@ -46,11 +48,11 @@ export function App() {
     try {
       await createArticle(form);
       setForm({ url: '', title: '' });
-      setMessage('登録しました');
+      setMessage('URLを登録しました');
       await loadArticles();
     } catch (requestError) {
       if (requestError.status === 409 && requestError.data?.article) {
-        setMessage('このURLは登録済みです');
+        setMessage('このURLはすでに登録済みです');
         await loadArticles();
       } else {
         setError(requestError.message);
@@ -73,11 +75,41 @@ export function App() {
     }
   }
 
+  async function handleFetchRss() {
+    setFetchingRss(true);
+    setError('');
+    setMessage('');
+
+    try {
+      const summary = await fetchRss();
+      const failed = summary.totals.failed;
+      const suffix = failed > 0 ? ` 失敗ソース ${failed} 件` : '';
+      setMessage(`RSS取得完了: 新規 ${summary.totals.created} 件、重複 ${summary.totals.skipped} 件。${suffix}`.trim());
+      await loadArticles();
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setFetchingRss(false);
+    }
+  }
+
   return (
     <main className="app">
       <header className="app__header">
-        <p>Tech Catchup</p>
-        <h1>今日拾った技術を、あとで使える形に。</h1>
+        <div className="app__header-copy">
+          <p>Tech Catchup</p>
+          <h1>今日拾った技術を、あとで使える形に。</h1>
+        </div>
+
+        <button
+          type="button"
+          className="app__rss-button"
+          onClick={handleFetchRss}
+          disabled={fetchingRss}
+        >
+          {fetchingRss ? <RefreshCcw size={18} className="spin" /> : <Rss size={18} />}
+          {fetchingRss ? '取得中' : 'RSS取得'}
+        </button>
       </header>
 
       <ArticleForm

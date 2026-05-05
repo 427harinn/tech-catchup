@@ -93,10 +93,63 @@ export function getArticle(id) {
 }
 
 export function createArticle({ title, url, source = 'manual' }) {
+  return createArticleRecord({
+    title,
+    url,
+    source,
+    fetchedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString()
+  });
+}
+
+export function createArticleIfNotExists({
+  title,
+  url,
+  source = 'manual',
+  publishedAt = null,
+  fetchedAt = new Date().toISOString(),
+  rawExcerpt = null
+}) {
   const db = getDb();
-  const now = new Date().toISOString();
+  const trimmedUrl = String(url || '').trim();
+  const existing = db.prepare('SELECT id FROM articles WHERE url = @url').get({ url: trimmedUrl });
+
+  if (existing) {
+    return {
+      article: getArticle(existing.id),
+      created: false
+    };
+  }
+
+  const article = createArticleRecord({
+    title,
+    url: trimmedUrl,
+    source,
+    publishedAt,
+    fetchedAt,
+    rawExcerpt,
+    createdAt: new Date().toISOString()
+  });
+
+  return {
+    article,
+    created: true
+  };
+}
+
+function createArticleRecord({
+  title,
+  url,
+  source = 'manual',
+  publishedAt = null,
+  fetchedAt = null,
+  rawExcerpt = null,
+  createdAt
+}) {
+  const db = getDb();
   const trimmedUrl = String(url || '').trim();
   const trimmedTitle = String(title || '').trim() || trimmedUrl;
+  const now = createdAt || new Date().toISOString();
 
   if (!trimmedUrl) {
     const error = new Error('URL is required.');
@@ -110,17 +163,31 @@ export function createArticle({ title, url, source = 'manual' }) {
         title,
         url,
         source,
+        published_at,
         fetched_at,
+        raw_excerpt,
         status,
         created_at,
         updated_at
       )
-      VALUES (@title, @url, @source, @fetched_at, 'new', @created_at, @updated_at)
+      VALUES (
+        @title,
+        @url,
+        @source,
+        @published_at,
+        @fetched_at,
+        @raw_excerpt,
+        'new',
+        @created_at,
+        @updated_at
+      )
     `).run({
       title: trimmedTitle,
       url: trimmedUrl,
       source: source || 'manual',
-      fetched_at: now,
+      published_at: publishedAt,
+      fetched_at: fetchedAt || now,
+      raw_excerpt: rawExcerpt,
       created_at: now,
       updated_at: now
     });
@@ -188,4 +255,3 @@ function parseJsonColumns(article) {
     notion_queue_types: JSON.parse(article.notion_queue_types || '[]')
   };
 }
-

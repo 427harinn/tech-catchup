@@ -37,11 +37,18 @@ a {
 }
 
 .app__header {
+  display: grid;
+  gap: 14px;
   padding: 10px 2px 18px;
 }
 
+.app__header-copy {
+  display: grid;
+  gap: 8px;
+}
+
 .app__header p {
-  margin: 0 0 8px;
+  margin: 0;
   color: #52746a;
   font-size: 0.82rem;
   font-weight: 700;
@@ -55,6 +62,26 @@ a {
   font-size: 2rem;
   line-height: 1.08;
   letter-spacing: 0;
+}
+
+.app__rss-button {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid #285f66;
+  border-radius: 8px;
+  color: #f8fffd;
+  background: #285f66;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.app__rss-button:disabled {
+  cursor: progress;
+  opacity: 0.72;
 }
 
 .article-form {
@@ -187,6 +214,12 @@ a {
   font-weight: 700;
 }
 
+.article-card__source {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .article-card h2 {
   margin: 0;
   color: #17241d;
@@ -253,7 +286,26 @@ a {
   font-weight: 700;
 }
 
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @media (min-width: 620px) {
+  .app__header {
+    grid-template-columns: 1fr auto;
+    align-items: end;
+  }
+
   .app__header h1 {
     font-size: 3rem;
   }
