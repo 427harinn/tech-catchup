@@ -9,9 +9,7 @@ if (!articleId) {
   process.exit(1);
 }
 
-const resolvedPath = filePath
-  ? path.resolve(filePath)
-  : path.resolve('src/scripts/sample-summary-ja.json');
+const resolvedPath = resolveInputPath(filePath);
 
 const raw = fs.readFileSync(resolvedPath, 'utf8');
 const payload = JSON.parse(raw);
@@ -33,3 +31,24 @@ if (!response.ok) {
 
 console.log(JSON.stringify(data, null, 2));
 
+function resolveInputPath(inputPath) {
+  if (!inputPath) {
+    return path.resolve('src/scripts/sample-summary-ja.json');
+  }
+
+  const normalized = inputPath.replace(/\\/g, '/');
+  const candidates = [
+    path.resolve(inputPath),
+    path.resolve(normalized.replace(/^backend\//, '')),
+    path.resolve(path.basename(normalized))
+  ];
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  console.error(`Summary JSON file not found: ${inputPath}`);
+  process.exit(1);
+}
