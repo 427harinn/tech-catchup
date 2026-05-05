@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ArticleCard } from './components/ArticleCard.jsx';
 import { ArticleForm } from './components/ArticleForm.jsx';
 import { createArticle, fetchArticles, sendReaction } from './api/client.js';
@@ -132,4 +132,3 @@ function toReactionMessage(reaction) {
   if (reaction === 'try_later') return '試したいに追加しました';
   return '保存しました';
 }
-
