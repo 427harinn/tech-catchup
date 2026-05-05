@@ -292,3 +292,7 @@ docker compose up -d --build
 - Phase 3: Codexè¦ç´„é€£æº
 - Phase 4: NotionåŒæœŸ
 - Phase 5: Cloudflare Tunnelå…¬é–‹
+
+Cloudflare Tunnel ŒöŠJ‚Ìè‡ˆÄ‚Í [docs/cloudflare-tunnel.md](/abs/c:/Users/User/Documents/GitHub/tech-catchup/docs/cloudflare-tunnel.md:1) ‚ğQÆ‚µ‚Ä‚­‚¾‚³‚¢B
+
+Tailscale ‚É‚æ‚éŒÂl—p–{”Ô‰^—p‚Ìè‡‚Í [docs/tailscale.md](/abs/c:/Users/User/Documents/GitHub/tech-catchup/docs/tailscale.md:1) ‚ğQÆ‚µ‚Ä‚­‚¾‚³‚¢B

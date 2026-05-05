@@ -1,8 +1,10 @@
 services:
   backend:
     build:
-      context: ./backend
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: tech-catchup-backend
+    command: ["node", "--watch", "src/server.js"]
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       BACKEND_PORT: ${BACKEND_PORT:-3000}
@@ -20,7 +22,7 @@ services:
       context: ./frontend
     container_name: tech-catchup-frontend
     environment:
-      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:3000}
+      VITE_API_PROXY_TARGET: ${VITE_API_PROXY_TARGET:-http://backend:3000}
       CHOKIDAR_USEPOLLING: "true"
     ports:
       - "${FRONTEND_PORT:-5173}:5173"

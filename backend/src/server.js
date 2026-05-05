@@ -2,6 +2,8 @@ import 'dotenv/config';
 import cors from 'cors';
 import express from 'express';
 import morgan from 'morgan';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { initDb } from './db/database.js';
 import { articlesRouter } from './routes/articles.js';
 import { notionRouter } from './routes/notion.js';
@@ -9,6 +11,11 @@ import { rssRouter } from './routes/rss.js';
 
 const app = express();
 const port = Number(process.env.BACKEND_PORT || 3000);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const frontendDistPath = process.env.FRONTEND_DIST_PATH
+  ? path.resolve(process.env.FRONTEND_DIST_PATH)
+  : path.resolve(__dirname, '../../frontend/dist');
+const frontendIndexPath = path.join(frontendDistPath, 'index.html');
 
 initDb();
 
@@ -28,7 +35,19 @@ app.use('/api/articles', articlesRouter);
 app.use('/api/notion', notionRouter);
 app.use('/api/rss', rssRouter);
 
+app.use(express.static(frontendDistPath, { index: false }));
+
 app.use((req, res) => {
+  const isApiRequest = req.path === '/api' || req.path.startsWith('/api/');
+
+  if (!isApiRequest) {
+    return res.sendFile(frontendIndexPath, (error) => {
+      if (error) {
+        res.status(404).json({ error: 'Frontend build not found.' });
+      }
+    });
+  }
+
   res.status(404).json({ error: 'Not found.' });
 });
 
