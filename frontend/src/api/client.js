@@ -21,12 +21,18 @@ async function request(path, options = {}) {
   return data;
 }
 
-export function fetchArticles(filter) {
+export function fetchArticles({
+  status = 'summarized',
+  sort = 'updated_desc',
+  limit = 60,
+  includeArchived = false
+} = {}) {
   const params = new URLSearchParams();
 
-  if (filter === 'new') params.set('status', 'new');
-  if (filter === 'summarized') params.set('status', 'summarized');
-  if (filter === 'saved') params.set('saved', 'true');
+  if (status) params.set('status', status);
+  if (sort) params.set('sort', sort);
+  if (limit) params.set('limit', String(limit));
+  if (includeArchived) params.set('include_archived', 'true');
 
   const query = params.toString();
   return request(`/api/articles${query ? `?${query}` : ''}`);
@@ -58,14 +64,4 @@ export function fetchLatestFetchAndSummarizeJob() {
 
 export function fetchLatestSummarizeLinkJob() {
   return request('/api/jobs/summarize-link/latest');
-}
-
-export function fetchAndSummarize() {
-  return createFetchAndSummarizeJob();
-}
-
-export function fetchRss() {
-  return request('/api/rss/fetch', {
-    method: 'POST'
-  });
 }

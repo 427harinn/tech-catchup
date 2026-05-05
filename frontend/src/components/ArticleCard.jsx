@@ -1,18 +1,12 @@
 import {
   BookmarkPlus,
   ExternalLink,
-  FlaskConical,
   Heart,
+  LoaderCircle,
   Rss,
+  Sparkles,
   ThumbsDown
 } from 'lucide-react';
-
-const statusLabels = {
-  new: '未要約',
-  queued: 'Notion同期待ち',
-  summarized: '要約済み',
-  failed: '要約失敗'
-};
 
 const sourceLabels = {
   manual: '手動登録',
@@ -24,48 +18,68 @@ const sourceLabels = {
   cloudflare_blog: 'Cloudflare Blog'
 };
 
-export function ArticleCard({ article, onReacting }) {
-  const createdAt = new Intl.DateTimeFormat('ja-JP', {
+const priorityLabels = {
+  5: '高',
+  4: 'やや高',
+  3: '中',
+  2: '低',
+  1: '控えめ'
+};
+
+export function ArticleCard({
+  article,
+  pendingReaction,
+  reactionError,
+  onReacting
+}) {
+  const isManual = article.source === 'manual';
+  const latestReaction = getLatestReaction(article);
+  const notionState = getNotionState(article);
+  const summaryDate = new Intl.DateTimeFormat('ja-JP', {
     dateStyle: 'medium',
     timeStyle: 'short'
-  }).format(new Date(article.created_at));
+  }).format(new Date(article.updated_at || article.created_at));
 
   return (
-    <article className="article-card">
-      <div className="article-card__meta">
-        <span>{statusLabels[article.status] || article.status}</span>
-        <span className="article-card__source">
-          {article.source === 'manual' ? <BookmarkPlus size={14} /> : <Rss size={14} />}
-          {sourceLabels[article.source] || article.source}
-        </span>
-        {article.priority ? <span>優先度 {article.priority}</span> : null}
+    <article
+      className={[
+        'article-card',
+        isManual ? 'article-card--manual' : 'article-card--rss',
+        latestReaction === 'not_interested' ? 'article-card--muted' : ''
+      ].filter(Boolean).join(' ')}
+    >
+      <div className="article-card__top">
+        <div className="article-card__chips">
+          <span className={`chip ${isManual ? 'chip--manual' : 'chip--rss'}`}>
+            {isManual ? <BookmarkPlus size={14} /> : <Rss size={14} />}
+            {sourceLabels[article.source] || article.source}
+          </span>
+          {article.priority ? (
+            <span className="chip chip--priority">
+              優先度 {priorityLabels[article.priority] || article.priority}
+            </span>
+          ) : null}
+          {latestReaction === 'interested' ? <span className="chip chip--interested">興味あり</span> : null}
+          {latestReaction === 'not_interested' ? <span className="chip chip--not-interested">興味なし</span> : null}
+          {latestReaction === 'try_later' ? <span className="chip chip--try-later">試したい</span> : null}
+        </div>
+
+        <a className="article-card__open" href={article.url} target="_blank" rel="noreferrer">
+          <ExternalLink size={16} />
+          開く
+        </a>
       </div>
 
-      <h2>{article.title}</h2>
+      <div className="article-card__heading">
+        <h2>{article.title}</h2>
+        <p className="article-card__date">要約更新 {summaryDate}</p>
+      </div>
 
       <a className="article-card__url" href={article.url} target="_blank" rel="noreferrer">
         {article.url}
       </a>
 
-      {article.summary_short ? (
-        <p className="article-card__summary">{article.summary_short}</p>
-      ) : article.raw_excerpt ? (
-        <p className="article-card__summary">{article.raw_excerpt}</p>
-      ) : null}
-
-      {article.tech_points ? (
-        <div className="article-card__detail">
-          <h3>技術ポイント</h3>
-          <p>{article.tech_points}</p>
-        </div>
-      ) : null}
-
-      {article.relevance ? (
-        <div className="article-card__detail">
-          <h3>関係ある理由</h3>
-          <p>{article.relevance}</p>
-        </div>
-      ) : null}
+      <p className="article-card__summary">{article.summary_short || article.raw_excerpt}</p>
 
       {Array.isArray(article.tags) && article.tags.length > 0 ? (
         <div className="article-card__tags">
@@ -75,42 +89,110 @@ export function ArticleCard({ article, onReacting }) {
         </div>
       ) : null}
 
-      <div className="article-card__date">登録: {createdAt}</div>
+      <div className="article-card__details">
+        {article.tech_points ? (
+          <details className="detail-block">
+            <summary>技術ポイント</summary>
+            <p>{article.tech_points}</p>
+          </details>
+        ) : null}
 
-      {article.notion_queue_types.length > 0 && (
-        <div className="article-card__queue">
-          保存待ち: {article.notion_queue_types.map(toQueueLabel).join(' / ')}
+        {article.relevance ? (
+          <details className="detail-block">
+            <summary>関係ある理由</summary>
+            <p>{article.relevance}</p>
+          </details>
+        ) : null}
+
+        {article.next_action ? (
+          <details className="detail-block">
+            <summary>次にやること</summary>
+            <p>{article.next_action}</p>
+          </details>
+        ) : null}
+      </div>
+
+      {notionState ? (
+        <div className={`article-card__notion article-card__notion--${notionState.kind}`}>
+          <Sparkles size={15} />
+          {notionState.label}
         </div>
-      )}
+      ) : null}
+
+      {reactionError ? (
+        <div className="article-card__inline-error">{reactionError}</div>
+      ) : null}
 
       <div className="article-card__actions">
-        <button type="button" onClick={() => onReacting(article.id, 'interested')}>
-          <Heart size={17} />
-          興味ある
-        </button>
-        <button type="button" onClick={() => onReacting(article.id, 'not_interested')}>
-          <ThumbsDown size={17} />
-          興味なし
-        </button>
-        <button type="button" onClick={() => onReacting(article.id, 'read_later')}>
-          <BookmarkPlus size={17} />
-          後で読む
-        </button>
-        <button type="button" onClick={() => onReacting(article.id, 'try_later')}>
-          <FlaskConical size={17} />
-          試したい
-        </button>
-        <a className="article-card__open" href={article.url} target="_blank" rel="noreferrer">
-          <ExternalLink size={17} />
-          元記事
-        </a>
+        <ReactionButton
+          icon={Heart}
+          label="興味ある"
+          active={latestReaction === 'interested'}
+          pending={pendingReaction === 'interested'}
+          tone="interested"
+          onClick={() => onReacting(article.id, 'interested')}
+        />
+        <ReactionButton
+          icon={ThumbsDown}
+          label="興味なし"
+          active={latestReaction === 'not_interested'}
+          pending={pendingReaction === 'not_interested'}
+          tone="not_interested"
+          onClick={() => onReacting(article.id, 'not_interested')}
+        />
+        <ReactionButton
+          icon={Sparkles}
+          label="試したい"
+          active={latestReaction === 'try_later'}
+          pending={pendingReaction === 'try_later'}
+          tone="try_later"
+          onClick={() => onReacting(article.id, 'try_later')}
+        />
       </div>
     </article>
   );
 }
 
-function toQueueLabel(type) {
-  if (type === 'read_later') return '後で読む';
-  if (type === 'try_later') return '試したい';
-  return type;
+function ReactionButton({ icon: Icon, label, active, pending, tone, onClick }) {
+  return (
+    <button
+      type="button"
+      className={[
+        'reaction-button',
+        active ? `reaction-button--${tone}-active` : '',
+        pending ? 'reaction-button--pending' : ''
+      ].filter(Boolean).join(' ')}
+      onClick={onClick}
+      disabled={pending}
+    >
+      {pending ? <LoaderCircle size={17} className="spin" /> : <Icon size={17} />}
+      {label}
+    </button>
+  );
+}
+
+function getLatestReaction(article) {
+  if (!Array.isArray(article.reactions) || article.reactions.length === 0) {
+    return null;
+  }
+
+  return article.reactions[article.reactions.length - 1] || null;
+}
+
+function getNotionState(article) {
+  const statuses = Array.isArray(article.notion_queue_statuses) ? article.notion_queue_statuses : [];
+
+  if (statuses.includes('failed')) {
+    return { kind: 'failed', label: 'Notion保存に失敗しました。再同期できます。' };
+  }
+
+  if (statuses.includes('queued')) {
+    return { kind: 'queued', label: 'Notionに保存中です。' };
+  }
+
+  if (statuses.includes('synced')) {
+    return { kind: 'synced', label: 'Notion保存済みです。' };
+  }
+
+  return null;
 }

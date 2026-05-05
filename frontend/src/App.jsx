@@ -1,5 +1,14 @@
-import React, { useEffect, useState } from 'react';
-import { RefreshCcw, Rss } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  ChevronDown,
+  Filter,
+  LoaderCircle,
+  RefreshCcw,
+  Rss,
+  Search,
+  SlidersHorizontal,
+  Sparkles
+} from 'lucide-react';
 import { ArticleCard } from './components/ArticleCard.jsx';
 import { ArticleForm } from './components/ArticleForm.jsx';
 import {
@@ -11,18 +20,21 @@ import {
   sendReaction
 } from './api/client.js';
 
-const filters = [
+const tabs = [
   { key: 'all', label: 'すべて' },
-  { key: 'new', label: '未要約' },
-  { key: 'summarized', label: '要約済み' },
-  { key: 'saved', label: '保存済み' }
+  { key: 'interested', label: '興味あり' },
+  { key: 'try_later', label: '試したい' },
+  { key: 'manual', label: '手動登録' }
 ];
 
 const ACTIVE_JOB_STATUSES = new Set(['queued', 'running']);
 
 export function App() {
   const [articles, setArticles] = useState([]);
-  const [filter, setFilter] = useState('all');
+  const [activeTab, setActiveTab] = useState('all');
+  const [searchText, setSearchText] = useState('');
+  const [priorityFilter, setPriorityFilter] = useState('all');
+  const [sourceFilter, setSourceFilter] = useState('all');
   const [form, setForm] = useState({ url: '', title: '', memo: '', body_text: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -31,10 +43,12 @@ export function App() {
   const [error, setError] = useState('');
   const [latestJob, setLatestJob] = useState(null);
   const [latestLinkJob, setLatestLinkJob] = useState(null);
+  const [pendingReactions, setPendingReactions] = useState({});
+  const [reactionErrors, setReactionErrors] = useState({});
 
   useEffect(() => {
-    loadArticles(filter);
-  }, [filter]);
+    loadArticles();
+  }, []);
 
   useEffect(() => {
     loadLatestJob();
@@ -65,13 +79,17 @@ export function App() {
     return () => window.clearInterval(timer);
   }, [latestLinkJob?.id, latestLinkJob?.status]);
 
-  async function loadArticles(nextFilter = filter) {
+  async function loadArticles() {
     setLoading(true);
     setError('');
 
     try {
-      const data = await fetchArticles(nextFilter);
-      setArticles(data.articles);
+      const data = await fetchArticles({
+        status: 'summarized',
+        sort: 'updated_desc',
+        limit: 60
+      });
+      setArticles(data.articles || []);
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -83,16 +101,22 @@ export function App() {
     try {
       const data = await fetchLatestFetchAndSummarizeJob();
       const nextJob = data.job || null;
-      const previousStatus = latestJob?.status;
 
-      setLatestJob(nextJob);
-
-      if (silent && previousStatus && previousStatus !== nextJob?.status && nextJob) {
-        setMessage(toJobStatusMessage(nextJob));
-        if (nextJob.status === 'succeeded' || nextJob.status === 'skipped') {
-          await loadArticles();
+      setLatestJob((previousJob) => {
+        if (
+          silent &&
+          previousJob?.status &&
+          previousJob.status !== nextJob?.status &&
+          nextJob
+        ) {
+          setMessage(toFetchJobStatusMessage(nextJob));
+          if (nextJob.status === 'succeeded' || nextJob.status === 'skipped') {
+            loadArticles();
+          }
         }
-      }
+
+        return nextJob;
+      });
     } catch (requestError) {
       if (!silent) {
         setError(requestError.message);
@@ -104,16 +128,22 @@ export function App() {
     try {
       const data = await fetchLatestSummarizeLinkJob();
       const nextJob = data.job || null;
-      const previousStatus = latestLinkJob?.status;
 
-      setLatestLinkJob(nextJob);
-
-      if (silent && previousStatus && previousStatus !== nextJob?.status && nextJob) {
-        setMessage(toLinkJobStatusMessage(nextJob));
-        if (nextJob.status === 'succeeded') {
-          await loadArticles();
+      setLatestLinkJob((previousJob) => {
+        if (
+          silent &&
+          previousJob?.status &&
+          previousJob.status !== nextJob?.status &&
+          nextJob
+        ) {
+          setMessage(toLinkJobStatusMessage(nextJob));
+          if (nextJob.status === 'succeeded') {
+            loadArticles();
+          }
         }
-      }
+
+        return nextJob;
+      });
     } catch (requestError) {
       if (!silent) {
         setError(requestError.message);
@@ -136,7 +166,7 @@ export function App() {
     } catch (requestError) {
       if (requestError.status === 409 && requestError.data?.job) {
         setLatestLinkJob(requestError.data.job);
-        setMessage('URL要約ジョブはすでに待機中または実行中です。');
+        setMessage('同じURLのジョブがすでにあります。状態表示をご確認ください。');
       } else {
         setError(requestError.message);
       }
@@ -146,19 +176,45 @@ export function App() {
   }
 
   async function handleReaction(articleId, reaction) {
+    const previousArticle = articles.find((article) => article.id === articleId);
+    if (!previousArticle) {
+      return;
+    }
+
     setError('');
     setMessage('');
+    setReactionErrors((current) => ({ ...current, [articleId]: '' }));
+    setPendingReactions((current) => ({ ...current, [articleId]: reaction }));
+
+    const optimisticArticle = buildOptimisticArticle(previousArticle, reaction);
+    setArticles((current) => current.map((article) => (
+      article.id === articleId ? optimisticArticle : article
+    )));
 
     try {
       const result = await sendReaction(articleId, reaction);
+      setArticles((current) => current.map((article) => (
+        article.id === articleId ? result.article : article
+      )));
       setMessage(toReactionMessage(reaction, result.notion_sync));
-      await loadArticles();
     } catch (requestError) {
-      setError(requestError.message);
+      setArticles((current) => current.map((article) => (
+        article.id === articleId ? previousArticle : article
+      )));
+      setReactionErrors((current) => ({
+        ...current,
+        [articleId]: requestError.message || '保存に失敗しました。'
+      }));
+    } finally {
+      setPendingReactions((current) => {
+        const next = { ...current };
+        delete next[articleId];
+        return next;
+      });
     }
   }
 
-  async function handleFetchRss() {
+  async function handleFetchAndSummarize() {
     setFetchingRss(true);
     setError('');
     setMessage('');
@@ -166,7 +222,7 @@ export function App() {
     try {
       const result = await createFetchAndSummarizeJob();
       setLatestJob(result.job || null);
-      setMessage(toJobCreationMessage(result));
+      setMessage(toFetchJobCreationMessage(result));
       await loadLatestJob({ silent: true });
     } catch (requestError) {
       setError(requestError.message);
@@ -175,64 +231,173 @@ export function App() {
     }
   }
 
-  const hasActiveJob = ACTIVE_JOB_STATUSES.has(latestJob?.status);
+  const visibleArticles = useMemo(() => filterArticles(articles, {
+    activeTab,
+    searchText,
+    priorityFilter,
+    sourceFilter
+  }), [activeTab, articles, priorityFilter, searchText, sourceFilter]);
+
+  const hasActiveFetchJob = ACTIVE_JOB_STATUSES.has(latestJob?.status);
+  const compactJobChips = buildCompactJobChips(latestJob, latestLinkJob);
+  const activeFilterSummary = buildFilterSummary({
+    searchText,
+    priorityFilter,
+    sourceFilter
+  });
 
   return (
-    <main className="app">
-      <header className="app__header">
-        <div className="app__header-copy">
-          <p>Tech Catchup</p>
-          <h1>毎日の技術キャッチアップを、あとで使える形に。</h1>
+    <main className="app-shell">
+      <section className="hero hero--compact">
+        <div className="hero__copy">
+          <p className="eyebrow">Tech Catchup</p>
+          <h1>要約済み記事をすぐ読む</h1>
         </div>
 
         <button
           type="button"
-          className="app__rss-button"
-          onClick={handleFetchRss}
-          disabled={fetchingRss || hasActiveJob}
+          className="primary-button primary-button--wide"
+          onClick={handleFetchAndSummarize}
+          disabled={fetchingRss || hasActiveFetchJob}
         >
-          {fetchingRss || hasActiveJob
+          {fetchingRss || hasActiveFetchJob
             ? <RefreshCcw size={18} className="spin" />
             : <Rss size={18} />}
-          {fetchingRss
-            ? '登録中'
-            : hasActiveJob
-              ? '取得＆要約中'
-              : '取得＆要約'}
+          {fetchingRss ? '受け付け中' : hasActiveFetchJob ? '取得＆要約 実行中' : '取得＆要約'}
         </button>
-      </header>
 
-      <ArticleForm
-        form={form}
-        saving={saving}
-        onChange={setForm}
-        onSubmit={handleSubmit}
-      />
-
-      <section className="toolbar" aria-label="記事フィルタ">
-        {filters.map((item) => (
-          <button
-            key={item.key}
-            type="button"
-            className={filter === item.key ? 'is-active' : ''}
-            onClick={() => setFilter(item.key)}
-          >
-            {item.label}
-          </button>
-        ))}
+        {compactJobChips.length > 0 ? (
+          <div className="compact-status-row">
+            {compactJobChips.map((chip) => (
+              <span key={chip.key} className={`compact-status compact-status--${chip.tone}`}>
+                {chip.label}
+              </span>
+            ))}
+          </div>
+        ) : null}
       </section>
 
-      {latestJob && (
-        <div className={`notice ${latestJob.status === 'failed' ? 'notice--error' : ''}`}>
-          {toJobStatusMessage(latestJob)}
-        </div>
-      )}
+      <div className="quick-tools">
+        <details className="accordion-card">
+          <summary>
+            <span className="accordion-card__title">
+              <Sparkles size={16} />
+              手動URL登録
+            </span>
+            <ChevronDown size={18} className="accordion-card__chevron" />
+          </summary>
+          <div className="accordion-card__content">
+            <ArticleForm
+              form={form}
+              saving={saving}
+              latestLinkJob={latestLinkJob}
+              onChange={setForm}
+              onSubmit={handleSubmit}
+            />
+          </div>
+        </details>
 
-      {latestLinkJob && (
-        <div className={`notice ${latestLinkJob.status === 'failed' ? 'notice--error' : ''}`}>
-          {toLinkJobStatusMessage(latestLinkJob)}
-        </div>
-      )}
+        <details className="accordion-card">
+          <summary>
+            <span className="accordion-card__title">
+              <LoaderCircle size={16} />
+              処理状況
+            </span>
+            <span className="accordion-card__summary-text">
+              {latestJob ? renderJobStateLabel(latestJob.status) : 'idle'}
+            </span>
+            <ChevronDown size={18} className="accordion-card__chevron" />
+          </summary>
+          <div className="accordion-card__content">
+            <div className="status-stack">
+              {latestJob ? (
+                <div className={`status-card status-card--${latestJob.status}`}>
+                  <p className="status-card__label">取得＆要約</p>
+                  <strong>{toFetchJobStatusMessage(latestJob)}</strong>
+                  <div className="status-card__counts">
+                    <span>attempted {latestJob?.result_json?.attempted ?? '-'}</span>
+                    <span>succeeded {latestJob?.result_json?.succeeded ?? '-'}</span>
+                    <span>failed {latestJob?.result_json?.failed ?? '-'}</span>
+                  </div>
+                </div>
+              ) : null}
+
+              {latestLinkJob ? (
+                <div className={`status-card status-card--${latestLinkJob.status}`}>
+                  <p className="status-card__label">手動URL要約</p>
+                  <strong>{toLinkJobStatusMessage(latestLinkJob)}</strong>
+                </div>
+              ) : null}
+
+              {!latestJob && !latestLinkJob ? (
+                <div className="status-card">
+                  <strong>まだジョブはありません。</strong>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </details>
+
+        <details className="accordion-card">
+          <summary>
+            <span className="accordion-card__title">
+              <Filter size={16} />
+              絞り込み
+            </span>
+            <span className="accordion-card__summary-text">{activeFilterSummary}</span>
+            <ChevronDown size={18} className="accordion-card__chevron" />
+          </summary>
+          <div className="accordion-card__content">
+            <div className="filter-grid">
+              <label className="field">
+                <span>検索</span>
+                <div className="field__input">
+                  <Search size={16} />
+                  <input
+                    type="search"
+                    value={searchText}
+                    onChange={(event) => setSearchText(event.target.value)}
+                    placeholder="タイトル / 要約 / 技術ポイント / タグ"
+                  />
+                </div>
+              </label>
+
+              <label className="field">
+                <span>優先度</span>
+                <div className="field__input field__input--select">
+                  <SlidersHorizontal size={16} />
+                  <select
+                    value={priorityFilter}
+                    onChange={(event) => setPriorityFilter(event.target.value)}
+                  >
+                    <option value="all">すべて</option>
+                    <option value="5">高</option>
+                    <option value="4">やや高</option>
+                    <option value="3">中</option>
+                    <option value="2">低</option>
+                    <option value="1">控えめ</option>
+                  </select>
+                </div>
+              </label>
+
+              <label className="field">
+                <span>情報源</span>
+                <div className="field__input field__input--select">
+                  <SlidersHorizontal size={16} />
+                  <select
+                    value={sourceFilter}
+                    onChange={(event) => setSourceFilter(event.target.value)}
+                  >
+                    <option value="all">すべて</option>
+                    <option value="manual">手動登録</option>
+                    <option value="rss">自動取得</option>
+                  </select>
+                </div>
+              </label>
+            </div>
+          </div>
+        </details>
+      </div>
 
       {(message || error) && (
         <div className={error ? 'notice notice--error' : 'notice'}>
@@ -240,17 +405,32 @@ export function App() {
         </div>
       )}
 
-      <section className="article-list" aria-live="polite">
-        {loading && <div className="empty-state">読み込み中です</div>}
+      <section className="tab-row tab-row--sticky" role="tablist" aria-label="記事フィルタ">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            className={activeTab === tab.key ? 'is-active' : ''}
+            onClick={() => setActiveTab(tab.key)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </section>
 
-        {!loading && articles.length === 0 && (
-          <div className="empty-state">まだ記事がありません</div>
+      <section className="article-list" aria-live="polite">
+        {loading && <div className="empty-state"><LoaderCircle size={18} className="spin" /> 読み込み中です</div>}
+
+        {!loading && visibleArticles.length === 0 && (
+          <div className="empty-state">条件に合う記事はまだありません。</div>
         )}
 
-        {!loading && articles.map((article) => (
+        {!loading && visibleArticles.map((article) => (
           <ArticleCard
             key={article.id}
             article={article}
+            pendingReaction={pendingReactions[article.id]}
+            reactionError={reactionErrors[article.id]}
             onReacting={handleReaction}
           />
         ))}
@@ -259,17 +439,148 @@ export function App() {
   );
 }
 
-function toReactionMessage(reaction, notionSync) {
-  if (reaction === 'try_later' && notionSync?.attempted) {
-    if (notionSync.succeeded) return '試したいに保存し、Notion へ同期しました';
-    return notionSync.message || 'Notion 同期に失敗しましたが、あとで再実行できます';
+function filterArticles(articles, { activeTab, searchText, priorityFilter, sourceFilter }) {
+  const query = searchText.trim().toLowerCase();
+
+  return articles.filter((article) => {
+    if (activeTab === 'interested' && getLatestReaction(article) !== 'interested') {
+      return false;
+    }
+
+    if (activeTab === 'try_later' && getLatestReaction(article) !== 'try_later') {
+      return false;
+    }
+
+    if (activeTab === 'manual' && article.source !== 'manual') {
+      return false;
+    }
+
+    if (priorityFilter !== 'all' && Number(article.priority) !== Number(priorityFilter)) {
+      return false;
+    }
+
+    if (sourceFilter === 'manual' && article.source !== 'manual') {
+      return false;
+    }
+
+    if (sourceFilter === 'rss' && article.source === 'manual') {
+      return false;
+    }
+
+    if (!query) {
+      return true;
+    }
+
+    const haystack = [
+      article.title,
+      article.summary_short,
+      article.tech_points,
+      article.relevance,
+      article.next_action,
+      Array.isArray(article.tags) ? article.tags.join(' ') : ''
+    ].join(' ').toLowerCase();
+
+    return haystack.includes(query);
+  });
+}
+
+function buildOptimisticArticle(article, reaction) {
+  const reactions = Array.isArray(article.reactions) ? [...article.reactions, reaction] : [reaction];
+  const notionQueueStatuses = Array.isArray(article.notion_queue_statuses)
+    ? [...article.notion_queue_statuses]
+    : [];
+
+  if (reaction === 'try_later' && !notionQueueStatuses.includes('queued')) {
+    notionQueueStatuses.push('queued');
   }
 
-  if (reaction === 'interested') return '興味ありとして保存しました';
-  if (reaction === 'not_interested') return '興味なしとして保存しました';
-  if (reaction === 'read_later') return 'あとで読むに保存しました';
-  if (reaction === 'try_later') return '試したいに保存しました';
-  return '保存しました';
+  return {
+    ...article,
+    reactions,
+    notion_queue_statuses: notionQueueStatuses
+  };
+}
+
+function getLatestReaction(article) {
+  if (!Array.isArray(article.reactions) || article.reactions.length === 0) {
+    return null;
+  }
+
+  return article.reactions[article.reactions.length - 1] || null;
+}
+
+function renderJobStateLabel(status) {
+  const labels = {
+    queued: 'queued',
+    running: 'running',
+    succeeded: 'succeeded',
+    failed: 'failed',
+    skipped: 'skipped',
+    needs_manual_text: 'needs_manual_text',
+    idle: 'idle'
+  };
+
+  return labels[status] || status;
+}
+
+function buildCompactJobChips(fetchJob, linkJob) {
+  const chips = [];
+
+  if (fetchJob) {
+    chips.push({
+      key: `fetch-${fetchJob.id}`,
+      tone: fetchJob.status,
+      label: `取得 ${renderJobStateLabel(fetchJob.status)}`
+    });
+  }
+
+  if (linkJob) {
+    chips.push({
+      key: `link-${linkJob.id}`,
+      tone: linkJob.status,
+      label: `URL ${renderJobStateLabel(linkJob.status)}`
+    });
+  }
+
+  return chips;
+}
+
+function buildFilterSummary({ searchText, priorityFilter, sourceFilter }) {
+  const parts = [];
+
+  if (searchText.trim()) {
+    parts.push('検索中');
+  }
+
+  if (priorityFilter !== 'all') {
+    parts.push(`優先度 ${priorityFilter}`);
+  }
+
+  if (sourceFilter === 'manual') {
+    parts.push('手動登録のみ');
+  }
+
+  if (sourceFilter === 'rss') {
+    parts.push('自動取得のみ');
+  }
+
+  return parts.length > 0 ? parts.join(' / ') : '未設定';
+}
+
+function toReactionMessage(reaction, notionSync) {
+  if (reaction === 'try_later' && notionSync?.attempted) {
+    if (notionSync.succeeded) {
+      return '試したいに保存して、Notionにも同期しました。';
+    }
+
+    return notionSync.message || 'Notion同期に失敗しましたが、記事カード上で再同期状態は確認できます。';
+  }
+
+  if (reaction === 'interested') return '興味ありに更新しました。';
+  if (reaction === 'not_interested') return '興味なしに更新しました。';
+  if (reaction === 'read_later') return 'あとで読むに更新しました。';
+  if (reaction === 'try_later') return '試したいに更新しました。';
+  return '保存しました。';
 }
 
 function toLinkJobCreationMessage(result) {
@@ -277,43 +588,43 @@ function toLinkJobCreationMessage(result) {
 
   if (!result.created) {
     if (notification?.attempted && !notification.succeeded) {
-      return `URL要約ジョブはすでに待機中または実行中です。runner 通知: ${notification.message}`;
+      return `URL要約ジョブはすでにあります。runner通知は失敗しました: ${notification.message}`;
     }
 
-    return 'URL要約ジョブはすでに待機中または実行中です。';
+    return 'URL要約ジョブはすでにあります。状態表示をご確認ください。';
   }
 
   if (notification?.attempted && notification.succeeded) {
-    return 'URL要約ジョブを登録し、runner に通知しました。';
+    return 'URL要約ジョブを受け付けました。要約中です。';
   }
 
   if (notification?.attempted && !notification.succeeded) {
-    return `URL要約ジョブを登録しました。runner 通知に失敗したため queued のままです: ${notification.message}`;
+    return `URL要約ジョブを受け付けました。runner通知は失敗しましたが、queued のまま残ります: ${notification.message}`;
   }
 
-  return 'URL要約ジョブを登録しました。';
+  return 'URL要約ジョブを受け付けました。';
 }
 
-function toJobCreationMessage(result) {
+function toFetchJobCreationMessage(result) {
   const notification = result.notification;
 
   if (!result.created) {
     if (notification?.attempted && !notification.succeeded) {
-      return `取得＆要約ジョブはすでに待機中または実行中です。runner 通知: ${notification.message}`;
+      return `取得＆要約ジョブはすでにあります。runner通知は失敗しました: ${notification.message}`;
     }
 
-    return '取得＆要約ジョブはすでに待機中または実行中です。';
+    return '取得＆要約ジョブはすでにあります。状態表示をご確認ください。';
   }
 
   if (notification?.attempted && notification.succeeded) {
-    return '取得＆要約ジョブを登録し、runner に通知しました。';
+    return '取得＆要約ジョブを受け付けました。';
   }
 
   if (notification?.attempted && !notification.succeeded) {
-    return `取得＆要約ジョブを登録しました。runner 通知に失敗したため queued のままです: ${notification.message}`;
+    return `取得＆要約ジョブを受け付けました。runner通知は失敗しましたが、queued のまま残ります: ${notification.message}`;
   }
 
-  return '取得＆要約ジョブを登録しました。';
+  return '取得＆要約ジョブを受け付けました。';
 }
 
 function toLinkJobStatusMessage(job) {
@@ -324,7 +635,7 @@ function toLinkJobStatusMessage(job) {
   }
 
   if (job.status === 'running') {
-    return `URL要約ジョブ #${job.id} を実行中です。`;
+    return `URL要約ジョブ #${job.id} を要約中です。`;
   }
 
   if (job.status === 'failed') {
@@ -332,7 +643,7 @@ function toLinkJobStatusMessage(job) {
   }
 
   if (job.status === 'needs_manual_text') {
-    return `URL要約ジョブ #${job.id} は本文確認ができませんでした。後で本文貼り付け対応に回せます。`;
+    return 'URL本文を確認できませんでした。本文貼り付け対応に回せます。';
   }
 
   if (job.status === 'succeeded') {
@@ -345,7 +656,7 @@ function toLinkJobStatusMessage(job) {
   return `URL要約ジョブ #${job.id} の状態: ${job.status}`;
 }
 
-function toJobStatusMessage(job) {
+function toFetchJobStatusMessage(job) {
   const result = job.result_json || null;
 
   if (job.status === 'queued') {
@@ -361,7 +672,7 @@ function toJobStatusMessage(job) {
   }
 
   if (job.status === 'skipped') {
-    return buildJobResultMessage(job, result, '取得＆要約ジョブはスキップされました。');
+    return buildJobResultMessage(job, result, '取得＆要約はスキップされました。');
   }
 
   if (job.status === 'succeeded') {
