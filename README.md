@@ -296,3 +296,5 @@ docker compose up -d --build
 Cloudflare Tunnel 公開の手順案は [docs/cloudflare-tunnel.md](/abs/c:/Users/User/Documents/GitHub/tech-catchup/docs/cloudflare-tunnel.md:1) を参照してください。
 
 Tailscale による個人用本番運用の手順は [docs/tailscale.md](/abs/c:/Users/User/Documents/GitHub/tech-catchup/docs/tailscale.md:1) を参照してください。
+
+日常運用と再起動後チェックの手順は [docs/operation.md](/abs/c:/Users/User/Documents/GitHub/tech-catchup/docs/operation.md:1) を参照してください。
