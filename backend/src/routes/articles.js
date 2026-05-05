@@ -13,11 +13,13 @@ import { syncNotionQueueItem } from '../services/notionService.js';
 export const articlesRouter = express.Router();
 
 articlesRouter.get('/', (req, res) => {
-  const { status, saved } = req.query;
+  const { status, saved, sort, limit } = req.query;
   res.json({
     articles: listArticles({
       status: status || undefined,
-      saved: saved === 'true'
+      saved: saved === 'true',
+      sort: sort || undefined,
+      limit: limit || undefined
     })
   });
 });

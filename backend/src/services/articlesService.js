@@ -2,10 +2,12 @@ import { getDb } from '../db/database.js';
 
 const validReactions = new Set(['interested', 'not_interested', 'read_later', 'try_later']);
 const queueReactions = new Set(['try_later']);
-export function listArticles({ status, saved } = {}) {
+export function listArticles({ status, saved, sort, limit } = {}) {
   const db = getDb();
   const params = {};
   const where = [];
+  const orderBySql = buildArticleOrderBy(sort);
+  const limitSql = buildArticleLimit(limit, params);
 
   if (status) {
     where.push('a.status = @status');
@@ -61,7 +63,8 @@ export function listArticles({ status, saved } = {}) {
     FROM articles a
     LEFT JOIN summaries s ON s.article_id = a.id
     ${whereSql}
-    ORDER BY datetime(a.created_at) DESC, a.id DESC
+    ${orderBySql}
+    ${limitSql}
   `).all(params).map(parseJsonColumns);
 }
 
@@ -428,6 +431,39 @@ function normalizeLimit(value) {
   }
 
   return Math.min(parsed, 10);
+}
+
+function normalizeArticleListLimit(value) {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    return null;
+  }
+
+  return Math.min(parsed, 100);
+}
+
+function buildArticleLimit(limit, params) {
+  const normalized = normalizeArticleListLimit(limit);
+  if (!normalized) {
+    return '';
+  }
+
+  params.limit = normalized;
+  return 'LIMIT @limit';
+}
+
+function buildArticleOrderBy(sort) {
+  switch (sort) {
+    case 'updated_desc':
+      return 'ORDER BY datetime(a.updated_at) DESC, a.id DESC';
+    case 'created_asc':
+      return 'ORDER BY datetime(a.created_at) ASC, a.id ASC';
+    case 'updated_asc':
+      return 'ORDER BY datetime(a.updated_at) ASC, a.id ASC';
+    case 'created_desc':
+    default:
+      return 'ORDER BY datetime(a.created_at) DESC, a.id DESC';
+  }
 }
 
 function parseJsonValue(value, fallback) {

@@ -5,13 +5,11 @@ import path from 'node:path';
 const [, , articleId, filePath] = process.argv;
 
 if (!articleId) {
-  console.error('Usage: npm run summary:post -- <articleId> [jsonFilePath]');
+  console.error('Usage: npm run summary:post -- <articleId> [jsonFilePath|-]');
   process.exit(1);
 }
 
-const resolvedPath = resolveInputPath(filePath);
-
-const raw = fs.readFileSync(resolvedPath, 'utf8');
+const raw = readInput(filePath);
 const payload = JSON.parse(raw);
 const baseUrl = process.env.SUMMARY_API_BASE_URL || 'http://localhost:3000';
 const response = await fetch(`${baseUrl}/api/articles/${articleId}/summary`, {
@@ -30,6 +28,15 @@ if (!response.ok) {
 }
 
 console.log(JSON.stringify(data, null, 2));
+
+function readInput(inputPath) {
+  if (inputPath === '-') {
+    return fs.readFileSync(0, 'utf8');
+  }
+
+  const resolvedPath = resolveInputPath(inputPath);
+  return fs.readFileSync(resolvedPath, 'utf8');
+}
 
 function resolveInputPath(inputPath) {
   if (!inputPath) {

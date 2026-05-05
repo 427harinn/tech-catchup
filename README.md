@@ -298,3 +298,5 @@ Cloudflare Tunnel 公開の手順案は [docs/cloudflare-tunnel.md](/abs/c:/Users/User/
 Tailscale による個人用本番運用の手順は [docs/tailscale.md](/abs/c:/Users/User/Documents/GitHub/tech-catchup/docs/tailscale.md:1) を参照してください。
 
 日常運用と再起動後チェックの手順は [docs/operation.md](/abs/c:/Users/User/Documents/GitHub/tech-catchup/docs/operation.md:1) を参照してください。
+
+タスクスケジューラで毎日自動実行する手順は [docs/scheduler.md](docs/scheduler.md) を参照してください。
