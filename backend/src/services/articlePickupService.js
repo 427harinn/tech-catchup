@@ -48,6 +48,32 @@ const SOURCE_SELECTION_LIMITS = {
   cloudflare_blog: 1
 };
 
+const EXPLICIT_TAG_PREFERENCES = {
+  GameDev: 18,
+  Unity: 12,
+  AI: 14,
+  Web: 10,
+  NewTech: 8,
+  News: 5,
+  GitHub: 4,
+  React: 3,
+  Cloudflare: -8
+};
+
+const EXPLICIT_SOURCE_PREFERENCES = {
+  unity_blog: 10,
+  openai_blog: 9,
+  itmedia_ai: 8,
+  github_blog: 6,
+  codezine: 5,
+  zenn: 4,
+  qiita: 4,
+  itmedia_news: 3,
+  yahoo_news_it_topics: 2,
+  yahoo_news_it: 2,
+  cloudflare_blog: -10
+};
+
 const GAME_DEV_KEYWORD_PATTERNS = [
   'unity',
   'unity開発',
@@ -109,7 +135,8 @@ const TAG_PATTERNS = [
   { tag: 'Security', patterns: ['security', 'vulnerability', 'cve', '認証', '脆弱性', 'セキュリティ', '不正アクセス'] },
   { tag: 'Infra', patterns: ['kubernetes', 'webrtc', 'redis', 'network', 'infra', 'aws', 'cloud'] },
   { tag: 'Web', patterns: ['web', 'browser', 'http', 'css', 'javascript', 'typescript'] },
-  { tag: 'Rust', patterns: ['rust', 'wasm'] }
+  { tag: 'Rust', patterns: ['rust', 'wasm'] },
+  { tag: 'NewTech', patterns: ['introducing', 'introduced', 'launch', 'launched', 'release', 'released', 'general availability', 'announcing', 'preview', 'beta', 'alpha', '発表', '公開', '提供開始', 'リリース'] }
 ];
 
 export function pickupArticles({ limit = DEFAULT_LIMIT, includeFailed = false } = {}) {
@@ -478,6 +505,7 @@ function calculateInterestScore(article, inferredTags, keywords, profile) {
 
   score += profile.sourceWeights.get(article.source) || 0;
   score += calculateGameDevBoost(article, inferredTags);
+  score += calculateExplicitPreferenceBoost(article, inferredTags);
 
   return roundScore(score);
 }
@@ -526,8 +554,22 @@ function inferCandidateTags(article) {
   if (article.source === 'github_blog') tags.add('GitHub');
   if (article.source === 'cloudflare_blog') tags.add('Cloudflare');
   if (article.source === 'qiita' || article.source === 'zenn') tags.add('Web');
+  if (['itmedia_news', 'itmedia_ai', 'codezine', 'yahoo_news_it_topics', 'yahoo_news_it', 'gigazine', 'forest_watch'].includes(article.source)) {
+    tags.add('News');
+  }
 
   return Array.from(tags);
+}
+
+function calculateExplicitPreferenceBoost(article, inferredTags) {
+  let score = 0;
+
+  for (const tag of inferredTags) {
+    score += EXPLICIT_TAG_PREFERENCES[tag] || 0;
+  }
+
+  score += EXPLICIT_SOURCE_PREFERENCES[article.source] || 0;
+  return roundScore(score);
 }
 
 function calculateGameDevBoost(article, inferredTags) {

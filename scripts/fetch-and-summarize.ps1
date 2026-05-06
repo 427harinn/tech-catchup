@@ -10,7 +10,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $Limit = [Math]::Min([Math]::Max($Limit, 1), 10)
 if ([string]::IsNullOrWhiteSpace($PickupMode)) {
-  $PickupMode = 'latest'
+  $PickupMode = 'score'
 }
 
 $repoRoot = Split-Path -Parent $PSScriptRoot

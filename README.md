@@ -293,20 +293,20 @@ docker compose up -d --build
 - Phase 4: NotionåŒæœŸ
 - Phase 5: Cloudflare Tunnelå…¬é–‹
 
-Cloudflare Tunnel ŒöŠJ‚Ìè‡ˆÄ‚Í [docs/cloudflare-tunnel.md](/abs/c:/Users/User/Documents/GitHub/tech-catchup/docs/cloudflare-tunnel.md:1) ‚ğQÆ‚µ‚Ä‚­‚¾‚³‚¢B
+Cloudflare Tunnel ï¿½ï¿½ï¿½Jï¿½Ìè‡ï¿½Ä‚ï¿½ [docs/cloudflare-tunnel.md](/abs/c:/Users/User/Documents/GitHub/tech-catchup/docs/cloudflare-tunnel.md:1) ï¿½ï¿½ï¿½Qï¿½Æ‚ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½B
 
-Tailscale ‚É‚æ‚éŒÂl—p–{”Ô‰^—p‚Ìè‡‚Í [docs/tailscale.md](/abs/c:/Users/User/Documents/GitHub/tech-catchup/docs/tailscale.md:1) ‚ğQÆ‚µ‚Ä‚­‚¾‚³‚¢B
+Tailscale ï¿½É‚ï¿½ï¿½Âlï¿½pï¿½{ï¿½Ô‰^ï¿½pï¿½Ìè‡ï¿½ï¿½ [docs/tailscale.md](/abs/c:/Users/User/Documents/GitHub/tech-catchup/docs/tailscale.md:1) ï¿½ï¿½ï¿½Qï¿½Æ‚ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½B
 
-“úí‰^—p‚ÆÄ‹N“®Œãƒ`ƒFƒbƒN‚Ìè‡‚Í [docs/operation.md](/abs/c:/Users/User/Documents/GitHub/tech-catchup/docs/operation.md:1) ‚ğQÆ‚µ‚Ä‚­‚¾‚³‚¢B
+ï¿½ï¿½ï¿½ï¿½^ï¿½pï¿½ÆÄ‹Nï¿½ï¿½ï¿½ï¿½`ï¿½Fï¿½bï¿½Nï¿½Ìè‡ï¿½ï¿½ [docs/operation.md](/abs/c:/Users/User/Documents/GitHub/tech-catchup/docs/operation.md:1) ï¿½ï¿½ï¿½Qï¿½Æ‚ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½B
 
-ƒ^ƒXƒNƒXƒPƒWƒ…[ƒ‰‚Å–ˆ“ú©“®Às‚·‚éè‡‚Í [docs/scheduler.md](docs/scheduler.md) ‚ğQÆ‚µ‚Ä‚­‚¾‚³‚¢B
+ï¿½^ï¿½Xï¿½Nï¿½Xï¿½Pï¿½Wï¿½ï¿½ï¿½[ï¿½ï¿½ï¿½Å–ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½sï¿½ï¿½ï¿½ï¿½è‡ï¿½ï¿½ [docs/scheduler.md](docs/scheduler.md) ï¿½ï¿½ï¿½Qï¿½Æ‚ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½B
 
-‰æ–Ê‚Ìuæ“¾•—v–ñvƒ{ƒ^ƒ“‚©‚ç RSS æ“¾‚Æ Codex —v–ñ‚ğÀs‚·‚éè‡‚Í [docs/web-fetch-and-summarize.md](docs/web-fetch-and-summarize.md) ‚ğQÆ‚µ‚Ä‚­‚¾‚³‚¢B
+ï¿½ï¿½Ê‚Ìuï¿½æ“¾ï¿½ï¿½ï¿½vï¿½ï¿½vï¿½{ï¿½^ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ RSS ï¿½æ“¾ï¿½ï¿½ Codex ï¿½vï¿½ï¿½ï¿½ï¿½ï¿½ï¿½sï¿½ï¿½ï¿½ï¿½è‡ï¿½ï¿½ [docs/web-fetch-and-summarize.md](docs/web-fetch-and-summarize.md) ï¿½ï¿½ï¿½Qï¿½Æ‚ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½B
 
-Windows ƒzƒXƒg‘¤ runner server ‚Ì‹N“®•û–@‚ÆƒWƒ‡ƒu’Ê’m•û®‚Í [docs/runner-server.md](docs/runner-server.md) ‚ğQÆ‚µ‚Ä‚­‚¾‚³‚¢B
+Windows ï¿½zï¿½Xï¿½gï¿½ï¿½ runner server ï¿½Ì‹Nï¿½ï¿½ï¿½ï¿½ï¿½@ï¿½ÆƒWï¿½ï¿½ï¿½uï¿½Ê’mï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ [docs/runner-server.md](docs/runner-server.md) ï¿½ï¿½ï¿½Qï¿½Æ‚ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½B
 
-ŒÃ‚¢‹L–‚ğ rchived_at ‚Å”ñ•\¦‚É®—‚·‚é‰^—p‚Í [docs/articles-archive.md](docs/articles-archive.md) ‚ğQÆ‚µ‚Ä‚­‚¾‚³‚¢B
+ï¿½Ã‚ï¿½ï¿½Lï¿½ï¿½ï¿½ï¿½ rchived_at ï¿½Å”ï¿½\ï¿½ï¿½ï¿½Éï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½^ï¿½pï¿½ï¿½ [docs/articles-archive.md](docs/articles-archive.md) ï¿½ï¿½ï¿½Qï¿½Æ‚ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½B
 
-—v–ñ‘ÎÛ‚ğ‹»–¡Ed—v“xE’Tõ‚ÅƒsƒbƒNƒAƒbƒv‚·‚é•ûj‚Í [docs/article-pickup.md](docs/article-pickup.md) ‚ğQÆ‚µ‚Ä‚­‚¾‚³‚¢B
+ï¿½vï¿½ï¿½ÎÛ‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Eï¿½dï¿½vï¿½xï¿½Eï¿½Tï¿½ï¿½ï¿½Åƒsï¿½bï¿½Nï¿½Aï¿½bï¿½vï¿½ï¿½ï¿½ï¿½ï¿½ï¿½jï¿½ï¿½ [docs/article-pickup.md](docs/article-pickup.md) ï¿½ï¿½ï¿½Qï¿½Æ‚ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½B
 
-- è“®URL—v–ñ‚Æ X/Twitter ƒŠƒ“ƒN•ûj: [docs/manual-link-summary.md](/abs/c:/Users/User/Documents/GitHub/tech-catchup/docs/manual-link-summary.md:1)
+- ï¿½è“®URLï¿½vï¿½ï¿½ï¿½ X/Twitter ï¿½ï¿½ï¿½ï¿½ï¿½Nï¿½ï¿½ï¿½j: [docs/manual-link-summary.md](/abs/c:/Users/User/Documents/GitHub/tech-catchup/docs/manual-link-summary.md:1)
