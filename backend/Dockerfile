@@ -6,6 +6,7 @@ COPY frontend/package*.json ./
 RUN npm install
 
 COPY frontend/index.html ./
+COPY frontend/public ./public
 COPY frontend/vite.config.js ./
 COPY frontend/src ./src
 
