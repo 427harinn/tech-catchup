@@ -10,10 +10,12 @@ export function ArticleForm({ form, saving, onChange, onSubmit, latestLinkJob })
           <p className="eyebrow">手動登録</p>
           <h2>URLをすぐ要約する</h2>
         </div>
-        <div className={`job-pill ${isBusy ? 'job-pill--running' : 'job-pill--idle'}`}>
-          {isBusy ? <LoaderCircle size={16} className="spin" /> : <Sparkles size={16} />}
-          {isBusy ? '要約中' : '待機中'}
-        </div>
+        {isBusy ? (
+          <div className="job-pill job-pill--running">
+            <LoaderCircle size={16} className="spin" />
+            要約中
+          </div>
+        ) : null}
       </div>
 
       <form className="article-form" onSubmit={onSubmit}>

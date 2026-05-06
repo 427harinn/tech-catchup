@@ -7,7 +7,8 @@ import {
   Rss,
   Search,
   SlidersHorizontal,
-  Sparkles
+  Sparkles,
+  X
 } from 'lucide-react';
 import { ArticleCard } from './components/ArticleCard.jsx';
 import { ArticleForm } from './components/ArticleForm.jsx';
@@ -43,6 +44,7 @@ export function App() {
   const [error, setError] = useState('');
   const [latestJob, setLatestJob] = useState(null);
   const [latestLinkJob, setLatestLinkJob] = useState(null);
+  const [isManualModalOpen, setIsManualModalOpen] = useState(false);
   const [pendingReactions, setPendingReactions] = useState({});
   const [reactionErrors, setReactionErrors] = useState({});
 
@@ -109,8 +111,12 @@ export function App() {
           previousJob.status !== nextJob?.status &&
           nextJob
         ) {
-          setMessage(toFetchJobStatusMessage(nextJob));
-          if (nextJob.status === 'succeeded' || nextJob.status === 'skipped') {
+          if (nextJob.status === 'succeeded' || nextJob.status === 'skipped' || nextJob.status === 'failed') {
+            if (nextJob.status === 'failed') {
+              setError(toFetchJobStatusMessage(nextJob));
+            } else {
+              setMessage(toFetchJobStatusMessage(nextJob));
+            }
             loadArticles();
           }
         }
@@ -136,8 +142,12 @@ export function App() {
           previousJob.status !== nextJob?.status &&
           nextJob
         ) {
-          setMessage(toLinkJobStatusMessage(nextJob));
-          if (nextJob.status === 'succeeded') {
+          if (nextJob.status === 'succeeded' || nextJob.status === 'failed' || nextJob.status === 'needs_manual_text') {
+            if (nextJob.status === 'failed' || nextJob.status === 'needs_manual_text') {
+              setError(toLinkJobStatusMessage(nextJob));
+            } else {
+              setMessage(toLinkJobStatusMessage(nextJob));
+            }
             loadArticles();
           }
         }
@@ -161,12 +171,12 @@ export function App() {
       const result = await createSummarizeLinkJob(form);
       setLatestLinkJob(result.job || null);
       setForm({ url: '', title: '', memo: '', body_text: '' });
-      setMessage(toLinkJobCreationMessage(result));
+      setIsManualModalOpen(false);
       await loadLatestLinkJob({ silent: true });
     } catch (requestError) {
       if (requestError.status === 409 && requestError.data?.job) {
         setLatestLinkJob(requestError.data.job);
-        setMessage('同じURLのジョブがすでにあります。状態表示をご確認ください。');
+        setError('同じURLの要約がすでに実行中です。完了後に通知します。');
       } else {
         setError(requestError.message);
       }
@@ -222,7 +232,6 @@ export function App() {
     try {
       const result = await createFetchAndSummarizeJob();
       setLatestJob(result.job || null);
-      setMessage(toFetchJobCreationMessage(result));
       await loadLatestJob({ silent: true });
     } catch (requestError) {
       setError(requestError.message);
@@ -239,7 +248,7 @@ export function App() {
   }), [activeTab, articles, priorityFilter, searchText, sourceFilter]);
 
   const hasActiveFetchJob = ACTIVE_JOB_STATUSES.has(latestJob?.status);
-  const compactJobChips = buildCompactJobChips(latestJob, latestLinkJob);
+  const hasActiveJob = hasActiveFetchJob || ACTIVE_JOB_STATUSES.has(latestLinkJob?.status);
   const activeFilterSummary = buildFilterSummary({
     searchText,
     priorityFilter,
@@ -248,6 +257,12 @@ export function App() {
 
   return (
     <main className="app-shell">
+      {hasActiveJob ? (
+        <div className="active-job-indicator" aria-live="polite" aria-label="処理中">
+          <LoaderCircle size={16} className="spin" />
+        </div>
+      ) : null}
+
       <section className="hero hero--compact">
         <div className="hero__copy">
           <p className="eyebrow">Tech Catchup</p>
@@ -266,19 +281,21 @@ export function App() {
           {fetchingRss ? '受け付け中' : hasActiveFetchJob ? '取得＆要約 実行中' : '取得＆要約'}
         </button>
 
-        {compactJobChips.length > 0 ? (
-          <div className="compact-status-row">
-            {compactJobChips.map((chip) => (
-              <span key={chip.key} className={`compact-status compact-status--${chip.tone}`}>
-                {chip.label}
-              </span>
-            ))}
-          </div>
-        ) : null}
       </section>
 
       <div className="quick-tools">
-        <details className="accordion-card">
+        <button
+          type="button"
+          className="accordion-card manual-desktop-trigger"
+          onClick={() => setIsManualModalOpen(true)}
+        >
+          <span className="accordion-card__title">
+            <Sparkles size={16} />
+            手動URL登録
+          </span>
+        </button>
+
+        <details className="accordion-card manual-mobile-panel">
           <summary>
             <span className="accordion-card__title">
               <Sparkles size={16} />
@@ -294,47 +311,6 @@ export function App() {
               onChange={setForm}
               onSubmit={handleSubmit}
             />
-          </div>
-        </details>
-
-        <details className="accordion-card">
-          <summary>
-            <span className="accordion-card__title">
-              <LoaderCircle size={16} />
-              処理状況
-            </span>
-            <span className="accordion-card__summary-text">
-              {latestJob ? renderJobStateLabel(latestJob.status) : 'idle'}
-            </span>
-            <ChevronDown size={18} className="accordion-card__chevron" />
-          </summary>
-          <div className="accordion-card__content">
-            <div className="status-stack">
-              {latestJob ? (
-                <div className={`status-card status-card--${latestJob.status}`}>
-                  <p className="status-card__label">取得＆要約</p>
-                  <strong>{toFetchJobStatusMessage(latestJob)}</strong>
-                  <div className="status-card__counts">
-                    <span>attempted {latestJob?.result_json?.attempted ?? '-'}</span>
-                    <span>succeeded {latestJob?.result_json?.succeeded ?? '-'}</span>
-                    <span>failed {latestJob?.result_json?.failed ?? '-'}</span>
-                  </div>
-                </div>
-              ) : null}
-
-              {latestLinkJob ? (
-                <div className={`status-card status-card--${latestLinkJob.status}`}>
-                  <p className="status-card__label">手動URL要約</p>
-                  <strong>{toLinkJobStatusMessage(latestLinkJob)}</strong>
-                </div>
-              ) : null}
-
-              {!latestJob && !latestLinkJob ? (
-                <div className="status-card">
-                  <strong>まだジョブはありません。</strong>
-                </div>
-              ) : null}
-            </div>
           </div>
         </details>
 
@@ -399,9 +375,51 @@ export function App() {
         </details>
       </div>
 
+      {isManualModalOpen ? (
+        <div className="manual-modal" role="dialog" aria-modal="true">
+          <button
+            type="button"
+            className="manual-modal__backdrop"
+            aria-label="Close manual URL form"
+            onClick={() => setIsManualModalOpen(false)}
+          />
+          <div className="manual-modal__panel">
+            <button
+              type="button"
+              className="manual-modal__close"
+              aria-label="Close manual URL form"
+              onClick={() => setIsManualModalOpen(false)}
+            >
+              <X size={18} />
+            </button>
+            <ArticleForm
+              form={form}
+              saving={saving}
+              latestLinkJob={latestLinkJob}
+              onChange={setForm}
+              onSubmit={handleSubmit}
+            />
+          </div>
+        </div>
+      ) : null}
+
       {(message || error) && (
-        <div className={error ? 'notice notice--error' : 'notice'}>
-          {error || message}
+        <div className={error ? 'toast toast--error' : 'toast'} role={error ? 'alert' : 'status'}>
+          <div className="toast__content">
+            <strong>{error ? '失敗しました' : '完了しました'}</strong>
+            <p>{error || message}</p>
+          </div>
+          <button
+            type="button"
+            className="toast__close"
+            aria-label="通知を閉じる"
+            onClick={() => {
+              setMessage('');
+              setError('');
+            }}
+          >
+            <X size={16} />
+          </button>
         </div>
       )}
 
@@ -509,42 +527,6 @@ function getLatestReaction(article) {
   return article.reactions[article.reactions.length - 1] || null;
 }
 
-function renderJobStateLabel(status) {
-  const labels = {
-    queued: 'queued',
-    running: 'running',
-    succeeded: 'succeeded',
-    failed: 'failed',
-    skipped: 'skipped',
-    needs_manual_text: 'needs_manual_text',
-    idle: 'idle'
-  };
-
-  return labels[status] || status;
-}
-
-function buildCompactJobChips(fetchJob, linkJob) {
-  const chips = [];
-
-  if (fetchJob) {
-    chips.push({
-      key: `fetch-${fetchJob.id}`,
-      tone: fetchJob.status,
-      label: `取得 ${renderJobStateLabel(fetchJob.status)}`
-    });
-  }
-
-  if (linkJob) {
-    chips.push({
-      key: `link-${linkJob.id}`,
-      tone: linkJob.status,
-      label: `URL ${renderJobStateLabel(linkJob.status)}`
-    });
-  }
-
-  return chips;
-}
-
 function buildFilterSummary({ searchText, priorityFilter, sourceFilter }) {
   const parts = [];
 
@@ -581,50 +563,6 @@ function toReactionMessage(reaction, notionSync) {
   if (reaction === 'read_later') return 'あとで読むに更新しました。';
   if (reaction === 'try_later') return '試したいに更新しました。';
   return '保存しました。';
-}
-
-function toLinkJobCreationMessage(result) {
-  const notification = result.notification;
-
-  if (!result.created) {
-    if (notification?.attempted && !notification.succeeded) {
-      return `URL要約ジョブはすでにあります。runner通知は失敗しました: ${notification.message}`;
-    }
-
-    return 'URL要約ジョブはすでにあります。状態表示をご確認ください。';
-  }
-
-  if (notification?.attempted && notification.succeeded) {
-    return 'URL要約ジョブを受け付けました。要約中です。';
-  }
-
-  if (notification?.attempted && !notification.succeeded) {
-    return `URL要約ジョブを受け付けました。runner通知は失敗しましたが、queued のまま残ります: ${notification.message}`;
-  }
-
-  return 'URL要約ジョブを受け付けました。';
-}
-
-function toFetchJobCreationMessage(result) {
-  const notification = result.notification;
-
-  if (!result.created) {
-    if (notification?.attempted && !notification.succeeded) {
-      return `取得＆要約ジョブはすでにあります。runner通知は失敗しました: ${notification.message}`;
-    }
-
-    return '取得＆要約ジョブはすでにあります。状態表示をご確認ください。';
-  }
-
-  if (notification?.attempted && notification.succeeded) {
-    return '取得＆要約ジョブを受け付けました。';
-  }
-
-  if (notification?.attempted && !notification.succeeded) {
-    return `取得＆要約ジョブを受け付けました。runner通知は失敗しましたが、queued のまま残ります: ${notification.message}`;
-  }
-
-  return '取得＆要約ジョブを受け付けました。';
 }
 
 function toLinkJobStatusMessage(job) {
