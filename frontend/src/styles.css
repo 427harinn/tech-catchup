@@ -36,6 +36,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   color: var(--text);
+  overflow-x: hidden;
 }
 
 button,
@@ -60,6 +61,8 @@ select {
   color: var(--text);
   background: rgba(255, 255, 255, 0.82);
   outline: none;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 input:focus,
@@ -90,6 +93,7 @@ textarea {
 .hero {
   display: grid;
   gap: 18px;
+  min-width: 0;
   margin-bottom: 16px;
   padding: 20px;
   border: 1px solid rgba(255, 255, 255, 0.55);
@@ -239,6 +243,7 @@ textarea {
 }
 
 .accordion-card {
+  min-width: 0;
   border: 1px solid rgba(255, 255, 255, 0.55);
   border-radius: 22px;
   background: rgba(255, 252, 247, 0.82);
@@ -274,6 +279,8 @@ button.accordion-card {
   align-items: center;
   gap: 8px;
   min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .accordion-card__summary-text {
@@ -333,6 +340,7 @@ button.accordion-card {
 }
 
 .panel {
+  min-width: 0;
   padding: 18px;
   border: 1px solid rgba(255, 255, 255, 0.55);
   border-radius: 26px;
@@ -354,6 +362,7 @@ button.accordion-card {
 
 .panel__header {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
@@ -364,6 +373,7 @@ button.accordion-card {
   font-size: 1.35rem;
   line-height: 1.2;
   color: #1f2c33;
+  overflow-wrap: anywhere;
 }
 
 .job-pill {
@@ -388,6 +398,7 @@ button.accordion-card {
 .article-form {
   display: grid;
   gap: 14px;
+  min-width: 0;
 }
 
 .article-form__grid {
@@ -398,18 +409,22 @@ button.accordion-card {
 .field {
   display: grid;
   gap: 8px;
+  min-width: 0;
 }
 
 .field span {
   color: #53636c;
   font-size: 0.88rem;
   font-weight: 700;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .field__input {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
   padding: 0 12px;
   border: 1px solid var(--line);
   border-radius: 16px;
@@ -423,6 +438,7 @@ button.accordion-card {
 
 .field__input input,
 .field__input select {
+  min-width: 0;
   border: 0;
   border-radius: 0;
   padding-left: 0;
@@ -445,6 +461,8 @@ button.accordion-card {
   color: var(--muted);
   font-size: 0.92rem;
   line-height: 1.6;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .toast {
@@ -526,6 +544,7 @@ button.accordion-card {
 }
 
 .tab-row button {
+  min-width: 0;
   padding: 0 14px;
   color: #53636c;
   background: rgba(255, 255, 255, 0.76);
@@ -555,6 +574,7 @@ button.accordion-card {
 .article-card {
   display: grid;
   gap: 14px;
+  min-width: 0;
   min-height: min(78svh, 760px);
   padding: 18px;
   border: 1px solid rgba(255, 255, 255, 0.62);
@@ -582,6 +602,7 @@ button.accordion-card {
   flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
+  min-width: 0;
   gap: 10px;
 }
 
@@ -589,6 +610,8 @@ button.accordion-card {
 .article-card__tags {
   display: flex;
   flex-wrap: wrap;
+  min-width: 0;
+  max-width: 100%;
   gap: 8px;
 }
 
@@ -597,10 +620,19 @@ button.accordion-card {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  max-width: 100%;
+  min-width: 0;
   padding: 7px 10px;
   border-radius: 999px;
   font-size: 0.78rem;
   font-weight: 700;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.chip svg,
+.article-card__tags span svg {
+  flex: none;
 }
 
 .chip--manual {
@@ -645,6 +677,7 @@ button.accordion-card {
 .article-card__heading {
   display: grid;
   gap: 6px;
+  min-width: 0;
 }
 
 .article-card h2 {
@@ -653,34 +686,44 @@ button.accordion-card {
   line-height: 1.35;
   color: #1d2a33;
   overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .article-card__date {
   margin: 0;
   color: var(--muted);
   font-size: 0.85rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .article-card__url {
+  min-width: 0;
   color: #54758a;
   font-size: 0.88rem;
   line-height: 1.5;
   overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .article-card__summary {
+  min-width: 0;
   margin: 0;
   color: #314049;
   font-size: 1rem;
   line-height: 1.9;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .article-card__details {
   display: grid;
   gap: 10px;
+  min-width: 0;
 }
 
 .detail-block {
+  min-width: 0;
   border: 1px solid var(--line-soft);
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.6);
@@ -692,6 +735,8 @@ button.accordion-card {
   cursor: pointer;
   list-style: none;
   font-weight: 700;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .detail-block summary::-webkit-details-marker {
@@ -703,17 +748,33 @@ button.accordion-card {
   padding: 0 16px 16px;
   color: #42515a;
   line-height: 1.8;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .article-card__notion {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  width: fit-content;
+  width: auto;
+  min-width: 0;
+  justify-self: start;
   padding: 9px 12px;
   border-radius: 999px;
   font-size: 0.84rem;
   font-weight: 700;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.article-card__notion svg {
+  flex: none;
+}
+
+.article-card__inline-error {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .article-card__notion--queued {
@@ -740,11 +801,13 @@ button.accordion-card {
 .article-card__actions {
   display: grid;
   gap: 10px;
+  min-width: 0;
   margin-top: auto;
 }
 
 .reaction-button {
   width: 100%;
+  min-width: 0;
   padding: 0 14px;
   color: #2a3740;
   background: rgba(255, 255, 255, 0.7);
@@ -887,6 +950,10 @@ button.accordion-card {
 
   .tab-row {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .tab-row button {
+    min-width: 0;
   }
 
   .tab-row--sticky {

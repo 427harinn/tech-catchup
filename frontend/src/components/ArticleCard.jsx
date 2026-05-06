@@ -103,13 +103,6 @@ export function ArticleCard({
             <p>{article.relevance}</p>
           </details>
         ) : null}
-
-        {article.next_action ? (
-          <details className="detail-block">
-            <summary>次にやること</summary>
-            <p>{article.next_action}</p>
-          </details>
-        ) : null}
       </div>
 
       {notionState ? (
