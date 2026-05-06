@@ -14,6 +14,13 @@ const sourceLabels = {
   qiita: 'Qiita',
   github_blog: 'GitHub Blog',
   openai_blog: 'OpenAI Blog',
+  itmedia_news: 'ITmedia NEWS',
+  itmedia_ai: 'ITmedia AI+',
+  codezine: 'CodeZine',
+  yahoo_news_it_topics: 'Yahoo!ニュース IT',
+  yahoo_news_it: 'Yahoo!ニュース IT',
+  forest_watch: '窓の杜',
+  gigazine: 'GIGAZINE',
   unity_blog: 'Unity Blog',
   cloudflare_blog: 'Cloudflare Blog'
 };

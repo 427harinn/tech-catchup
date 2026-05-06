@@ -13,21 +13,39 @@ const REACTION_WEIGHTS = {
 const SOURCE_SCORES = {
   openai_blog: 18,
   github_blog: 16,
-  cloudflare_blog: 15,
+  cloudflare_blog: 4,
+  itmedia_ai: 15,
+  codezine: 13,
+  itmedia_news: 12,
+  yahoo_news_it_topics: 9,
+  yahoo_news_it: 8,
   qiita: 11,
   zenn: 10,
   manual: 7,
-  unity_blog: 9
+  unity_blog: 9,
+  forest_watch: 6,
+  gigazine: 6
 };
 
 const POPULARITY_SCORES = {
   openai_blog: 22,
   github_blog: 20,
-  cloudflare_blog: 18,
+  cloudflare_blog: 5,
+  itmedia_ai: 18,
+  codezine: 17,
+  itmedia_news: 16,
+  yahoo_news_it_topics: 12,
+  yahoo_news_it: 11,
   qiita: 16,
   zenn: 10,
   manual: 5,
-  unity_blog: 8
+  unity_blog: 8,
+  forest_watch: 8,
+  gigazine: 8
+};
+
+const SOURCE_SELECTION_LIMITS = {
+  cloudflare_blog: 1
 };
 
 const GAME_DEV_KEYWORD_PATTERNS = [
@@ -358,14 +376,34 @@ function pushSelections(target, selectedIds, candidates, count, slot, ranker) {
       return right.article.id - left.article.id;
     });
 
-  for (const item of sorted.slice(0, count)) {
+  let selectedForSlot = 0;
+  for (const item of sorted) {
+    if (reachesSourceSelectionLimit(target, item.article.source)) {
+      continue;
+    }
+
     selectedIds.add(item.article.id);
     target.push({
       article: item.article,
       scores: item.scores,
       slot
     });
+    selectedForSlot += 1;
+
+    if (selectedForSlot >= count) {
+      break;
+    }
   }
+}
+
+function reachesSourceSelectionLimit(selections, source) {
+  const limit = SOURCE_SELECTION_LIMITS[source];
+  if (!limit) {
+    return false;
+  }
+
+  const count = selections.filter((selection) => selection.article.source === source).length;
+  return count >= limit;
 }
 
 function buildSelectionReason(selection) {

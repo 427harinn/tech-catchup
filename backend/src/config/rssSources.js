@@ -28,6 +28,55 @@ export const rssSources = [
     note: 'OpenAI official news feed'
   },
   {
+    id: 'itmedia_news',
+    name: 'ITmedia NEWS',
+    url: 'https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml',
+    enabled: true,
+    note: 'ITmedia NEWS latest articles feed'
+  },
+  {
+    id: 'itmedia_ai',
+    name: 'ITmedia AI+',
+    url: 'https://rss.itmedia.co.jp/rss/2.0/aiplus.xml',
+    enabled: true,
+    note: 'ITmedia AI+ latest articles feed'
+  },
+  {
+    id: 'codezine',
+    name: 'CodeZine',
+    url: 'https://codezine.jp/rss/new/20/index.xml',
+    enabled: true,
+    note: 'CodeZine latest articles RSS feed'
+  },
+  {
+    id: 'yahoo_news_it_topics',
+    name: 'Yahoo!ニュース ITトピックス',
+    url: 'https://news.yahoo.co.jp/rss/topics/it.xml',
+    enabled: false,
+    note: 'Candidate feed. Yahoo!ニュース RSS has usage restrictions, so keep disabled until explicitly opted in.'
+  },
+  {
+    id: 'yahoo_news_it',
+    name: 'Yahoo!ニュース IT',
+    url: 'https://news.yahoo.co.jp/rss/categories/it.xml',
+    enabled: false,
+    note: 'Candidate feed. Yahoo!ニュース RSS has usage restrictions, so keep disabled until explicitly opted in.'
+  },
+  {
+    id: 'forest_watch',
+    name: '窓の杜',
+    url: 'https://forest.watch.impress.co.jp/data/rss/1.0/wf/feed.rdf',
+    enabled: false,
+    note: 'Candidate feed for software and Windows tool news'
+  },
+  {
+    id: 'gigazine',
+    name: 'GIGAZINE',
+    url: 'https://gigazine.net/news/rss_2.0/',
+    enabled: false,
+    note: 'Candidate broad tech/news feed; kept disabled to avoid noisy articles'
+  },
+  {
     id: 'unity_blog',
     name: 'Unity Blog',
     url: 'https://unity.com/blog/feed',
