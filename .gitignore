@@ -10,6 +10,7 @@ backend/data/*.db-wal
 
 logs/*.log
 logs/*.lock
+logs/runner-server.pid
 logs/codex-last-message-*.json
 logs/codex-link-last-message-job-*.json
 backend/src/scripts/summary-*.json
