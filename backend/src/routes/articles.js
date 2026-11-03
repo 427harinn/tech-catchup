@@ -103,7 +103,7 @@ articlesRouter.post('/:id/reactions', async (req, res, next) => {
     const reaction = req.body.reaction;
     const { article, notionQueueItemId } = createReaction(Number(req.params.id), reaction);
 
-    if (reaction !== 'try_later' || !notionQueueItemId) {
+    if (!notionQueueItemId) {
       res.status(201).json({ article });
       return;
     }

@@ -1,7 +1,7 @@
 import { getDb } from '../db/database.js';
 
 const validReactions = new Set(['interested', 'not_interested', 'read_later', 'try_later']);
-const queueReactions = new Set(['try_later']);
+const queueReactions = new Set([]);
 const VISIBLE_ARTICLE_TARGET = 20;
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
