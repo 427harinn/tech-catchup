@@ -103,7 +103,9 @@ articlesRouter.post('/:id/reactions', async (req, res, next) => {
     const reaction = req.body.reaction;
     const { article, notionQueueItemId } = createReaction(Number(req.params.id), reaction);
 
-    if (reaction !== 'try_later' || !notionQueueItemId) {
+    // The service owns the queue-reaction mapping. Use the returned queue id
+    // rather than duplicating that mapping in the HTTP layer.
+    if (!notionQueueItemId) {
       res.status(201).json({ article });
       return;
     }
