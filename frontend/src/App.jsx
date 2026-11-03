@@ -24,7 +24,7 @@ import {
 const tabs = [
   { key: 'all', label: 'すべて' },
   { key: 'interested', label: '興味あり' },
-  { key: 'try_later', label: '試したい' },
+  { key: 'try_later', label: '@Muse' },
   { key: 'manual', label: '手動登録' }
 ];
 
@@ -206,7 +206,7 @@ export function App() {
       setArticles((current) => current.map((article) => (
         article.id === articleId ? result.article : article
       )));
-      setMessage(toReactionMessage(reaction, result.notion_sync));
+      setMessage(toReactionMessage(reaction));
     } catch (requestError) {
       setArticles((current) => current.map((article) => (
         article.id === articleId ? previousArticle : article
@@ -508,10 +508,6 @@ function buildOptimisticArticle(article, reaction) {
     ? [...article.notion_queue_statuses]
     : [];
 
-  if (reaction === 'try_later' && !notionQueueStatuses.includes('queued')) {
-    notionQueueStatuses.push('queued');
-  }
-
   return {
     ...article,
     reactions,
@@ -549,19 +545,11 @@ function buildFilterSummary({ searchText, priorityFilter, sourceFilter }) {
   return parts.length > 0 ? parts.join(' / ') : '未設定';
 }
 
-function toReactionMessage(reaction, notionSync) {
-  if (reaction === 'try_later' && notionSync?.attempted) {
-    if (notionSync.succeeded) {
-      return '試したいに保存して、Notionにも同期しました。';
-    }
-
-    return notionSync.message || 'Notion同期に失敗しましたが、記事カード上で再同期状態は確認できます。';
-  }
-
+function toReactionMessage(reaction) {
   if (reaction === 'interested') return '興味ありに更新しました。';
   if (reaction === 'not_interested') return '興味なしに更新しました。';
   if (reaction === 'read_later') return 'あとで読むに更新しました。';
-  if (reaction === 'try_later') return '試したいに更新しました。';
+  if (reaction === 'try_later') return 'Museにメンションしました。';
   return '保存しました。';
 }
 
