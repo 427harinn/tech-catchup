@@ -194,5 +194,9 @@ function getNotionState(article) {
     return { kind: 'synced', label: 'Muse保存済みです。' };
   }
 
+  if (getLatestReaction(article) === 'try_later') {
+    return { kind: 'muse', label: 'Museに保存予定です。' };
+  }
+
   return null;
 }
