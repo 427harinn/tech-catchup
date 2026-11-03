@@ -508,7 +508,7 @@ function buildOptimisticArticle(article, reaction) {
     ? [...article.notion_queue_statuses]
     : [];
 
-  if (reaction === 'try_later' && !notionQueueStatuses.includes('queued')) {
+  if (reaction === 'try_later') {
     notionQueueStatuses.push('queued');
   }
 

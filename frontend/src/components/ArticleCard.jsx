@@ -181,16 +181,17 @@ function getLatestReaction(article) {
 
 function getNotionState(article) {
   const statuses = Array.isArray(article.notion_queue_statuses) ? article.notion_queue_statuses : [];
+  const latestStatus = statuses[statuses.length - 1];
 
-  if (statuses.includes('failed')) {
+  if (latestStatus === 'failed') {
     return { kind: 'failed', label: 'Notion保存に失敗しました。再同期できます。' };
   }
 
-  if (statuses.includes('queued')) {
+  if (latestStatus === 'queued') {
     return { kind: 'queued', label: 'Notionに保存中です。' };
   }
 
-  if (statuses.includes('synced')) {
+  if (latestStatus === 'synced') {
     return { kind: 'synced', label: 'Notion保存済みです。' };
   }
 
