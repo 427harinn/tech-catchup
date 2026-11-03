@@ -68,7 +68,7 @@ export function ArticleCard({
           ) : null}
           {latestReaction === 'interested' ? <span className="chip chip--interested">興味あり</span> : null}
           {latestReaction === 'not_interested' ? <span className="chip chip--not-interested">興味なし</span> : null}
-          {latestReaction === 'try_later' ? <span className="chip chip--try-later">試したい</span> : null}
+          {latestReaction === 'try_later' ? <span className="chip chip--try-later">@Muse</span> : null}
         </div>
 
         <a className="article-card__open" href={article.url} target="_blank" rel="noreferrer">
@@ -142,7 +142,7 @@ export function ArticleCard({
         />
         <ReactionButton
           icon={Sparkles}
-          label="試したい"
+          label="@Muse"
           active={latestReaction === 'try_later'}
           pending={pendingReaction === 'try_later'}
           tone="try_later"
@@ -183,15 +183,15 @@ function getNotionState(article) {
   const statuses = Array.isArray(article.notion_queue_statuses) ? article.notion_queue_statuses : [];
 
   if (statuses.includes('failed')) {
-    return { kind: 'failed', label: 'Notion保存に失敗しました。再同期できます。' };
+    return { kind: 'failed', label: 'Muse保存に失敗しました。再同期できます。' };
   }
 
   if (statuses.includes('queued')) {
-    return { kind: 'queued', label: 'Notionに保存中です。' };
+    return { kind: 'queued', label: 'Museに保存中です。' };
   }
 
   if (statuses.includes('synced')) {
-    return { kind: 'synced', label: 'Notion保存済みです。' };
+    return { kind: 'synced', label: 'Muse保存済みです。' };
   }
 
   return null;
