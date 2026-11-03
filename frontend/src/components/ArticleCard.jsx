@@ -41,7 +41,7 @@ export function ArticleCard({
 }) {
   const isManual = article.source === 'manual';
   const latestReaction = getLatestReaction(article);
-  const notionState = getNotionState(article);
+  const museState = getMuseState(article);
   const summaryDate = new Intl.DateTimeFormat('ja-JP', {
     dateStyle: 'medium',
     timeStyle: 'short'
@@ -112,10 +112,10 @@ export function ArticleCard({
         ) : null}
       </div>
 
-      {notionState ? (
-        <div className={`article-card__notion article-card__notion--${notionState.kind}`}>
+      {museState ? (
+        <div className={`article-card__notion article-card__notion--${museState.kind}`}>
           <Sparkles size={15} />
-          {notionState.label}
+          {museState.label}
         </div>
       ) : null}
 
@@ -179,23 +179,9 @@ function getLatestReaction(article) {
   return article.reactions[article.reactions.length - 1] || null;
 }
 
-function getNotionState(article) {
-  const statuses = Array.isArray(article.notion_queue_statuses) ? article.notion_queue_statuses : [];
-
-  if (statuses.includes('failed')) {
-    return { kind: 'failed', label: 'Muse保存に失敗しました。再同期できます。' };
-  }
-
-  if (statuses.includes('queued')) {
-    return { kind: 'queued', label: 'Museに保存中です。' };
-  }
-
-  if (statuses.includes('synced')) {
-    return { kind: 'synced', label: 'Muse保存済みです。' };
-  }
-
+function getMuseState(article) {
   if (getLatestReaction(article) === 'try_later') {
-    return { kind: 'muse', label: 'Museに保存予定です。' };
+    return { kind: 'muse', label: 'Museにメンション済みです' };
   }
 
   return null;
